@@ -1,0 +1,7 @@
+{'array': {'Substation foundation': {'quantity': Counter({'n/a': 4})}},
+'device001': {'Foundation': {'quantity': Counter({'id9': 4})}, 'Umbilical': {'quantity': Counter({'id16': 1})}, 'Mooring system': {'quantity': Counter({'id2': 4, 'id13': 1, 'id1': 1, 'id11': 1, 'id1': 1})}}, 
+'device002': {'Foundation': {'quantity': Counter({'id9': 4})}, 'Umbilical': {'quantity': Counter({'id16': 1})}, 'Mooring system': {'quantity': Counter({'id2': 4, 'id13': 1, 'id1': 1, 'id11': 1, 'id1': 1})}}, 
+'device003': {'Foundation': {'quantity': Counter({'id9': 4})}, 'Umbilical': {'quantity': Counter({'id16': 1})}, 'Mooring system': {'quantity': Counter({'id2': 4, 'id13': 1, 'id1': 1, 'id11': 1, 'id1': 1})}},
+'device004': {'Foundation': {'quantity': Counter({'id9': 4})}, 'Umbilical': {'quantity': Counter({'id16': 1})}, 'Mooring system': {'quantity': Counter({'id2': 4, 'id13': 1, 'id1': 1, 'id11': 1, 'id1': 1})}},
+'device005': {'Foundation': {'quantity': Counter({'id9': 4})}, 'Umbilical': {'quantity': Counter({'id16': 1})}, 'Mooring system': {'quantity': Counter({'id2': 4, 'id13': 1, 'id1': 1, 'id11': 1, 'id1': 1})}},
+'device006': {'Foundation': {'quantity': Counter({'id9': 4})}, 'Umbilical': {'quantity': Counter({'id16': 1})}, 'Mooring system': {'quantity': Counter({'id2': 4, 'id13': 1, 'id1': 1, 'id11': 1, 'id1': 1})}}}

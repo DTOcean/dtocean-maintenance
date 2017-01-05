@@ -1,0 +1,7 @@
+{'array': {},
+'device001': {'Power take off system': ['id17', 'id18']},
+'device002': {'Power take off system': ['id17', 'id18']},
+'device003': {'Power take off system': ['id17', 'id18']},
+'device004': {'Power take off system': ['id17', 'id18']},
+'device005': {'Power take off system': ['id17', 'id18']},
+'device006': {'Power take off system': ['id17', 'id18']}}

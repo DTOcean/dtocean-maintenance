@@ -1,0 +1,10 @@
+{'array': {},
+'device001': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
+'device002': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
+'device003': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
+'device004': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
+'device005': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
+'device006': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']}}
+
+
+
