@@ -39,7 +39,7 @@ class array(object):
             readFailureRateFromRAM (bool)             : internal flag in order to read from RAM (at the end of development can be removed or set to true)
         
         Attributes:          
-            self.__dtocean_operations_PRINT_FLAG (bool)      : internal flag in order to print the WP6-Messages (at the end of development can be removed or set to false)                      
+            self.__dtocean_maintenance_PRINT_FLAG (bool)      : internal flag in order to print the WP6-Messages (at the end of development can be removed or set to false)                      
             self.__dayHours (float)                          : hours in one day 
             self.__yearDays (float)                          : days in one year       
             self.__rsubsysvalues (nested list)               : rsubsysvalues from RAM 
@@ -60,7 +60,7 @@ class array(object):
         '''
         
         # for print purposes
-        self.__dtocean_operations_PRINT_FLAG = printWP6
+        self.__dtocean_maintenance_PRINT_FLAG = printWP6
  
         # Hours in one day  
         self.__dayHours = 24.0 
@@ -242,7 +242,7 @@ class array(object):
                 else:
                     # failure rate will be read from component table
                     arrayDict[componentID]['FR'] = component[componentID]['failure_rate'] 
-                    if self.__dtocean_operations_PRINT_FLAG == True:
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                         print 'WP6: The failure rate of ' + componentID + ' can not be read from dtocean-reliability. Therefore the failure rate is read from component table of dtocean-operations'
                                                                        
             else:
@@ -370,7 +370,7 @@ class array(object):
                                arrayDict[componentID]['Breakdown'].append(componentType)
     
 
-                       if self.__dtocean_operations_PRINT_FLAG == True:                            
+                       if self.__dtocean_maintenance_PRINT_FLAG == True:                            
                            print 'WP6: The impact of ' + componentID + ' of devices can not be analysed from dtocean-reliability.'
 
                             

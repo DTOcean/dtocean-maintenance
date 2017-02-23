@@ -27,8 +27,8 @@ from collections import Counter
 import pandas as pd
 import numpy as np
 
-from dtocean_operations.mainOptim import LCOE_Optimiser
-from dtocean_operations.inputOM import inputOM
+from dtocean_maintenance.mainOptim import LCOE_Optimiser
+from dtocean_maintenance.inputOM import inputOM
 
 from dtocean_logistics.load import load_phase_order_data, load_time_olc_data
 from dtocean_logistics.load import load_eq_rates
@@ -188,20 +188,20 @@ def test():
     # Control_Param['checkNoSolution'] is False -> do not check the feasibility of logistic solution before the simulation
     Control_Param['checkNoSolution'] = False 
     
-    # flag: dtocean_operations print flag               
-    # Control_Param['dtocean_operations_PRINT_FLAG'] is True  -> print is allowed inside of dtocean_operations
-    # Control_Param['dtocean_operations_PRINT_FLAG'] is False -> print is not allowed inside of dtocean_operations
-    Control_Param['dtocean_operations_PRINT_FLAG'] = False 
+    # flag: dtocean_maintenance print flag               
+    # Control_Param['dtocean_maintenance_PRINT_FLAG'] is True  -> print is allowed inside of dtocean_maintenance
+    # Control_Param['dtocean_maintenance_PRINT_FLAG'] is False -> print is not allowed inside of dtocean_maintenance
+    Control_Param['dtocean_maintenance_PRINT_FLAG'] = False 
     
     # flag: dtocean-logistics print flag               
     # Control_Param['dtocean_logistics_PRINT_FLAG'] is True  -> print is allowed inside of dtocean-logistics
     # Control_Param['dtocean_logistics_PRINT_FLAG'] is False -> print is not allowed inside of dtocean-logistics
     Control_Param['dtocean_logistics_PRINT_FLAG'] = False
     
-    # flag: dtocean_operations test flag               
-    # Control_Param['dtocean_operations_TEST_FLAG'] is True  -> print the results in excel files
-    # Control_Param['dtocean_operations_TEST_FLAG'] is False -> do not print the results in excel files
-    Control_Param['dtocean_operations_TEST_FLAG'] = True 
+    # flag: dtocean_maintenance test flag               
+    # Control_Param['dtocean_maintenance_TEST_FLAG'] is True  -> print the results in excel files
+    # Control_Param['dtocean_maintenance_TEST_FLAG'] is False -> do not print the results in excel files
+    Control_Param['dtocean_maintenance_TEST_FLAG'] = True 
     
     # Flag: read from RAM
     # Control_Param['readFailureRateFromRAM'] is True  -> Failure rate is read from RAM
@@ -860,7 +860,7 @@ def test():
           
 start_time = time.time()
 
-# Call dtocean_operations
+# Call dtocean_maintenance
 outputWP6 = test()
 
 if outputWP6['error [-]']['error_ID [-]'][0] == 'NoError':

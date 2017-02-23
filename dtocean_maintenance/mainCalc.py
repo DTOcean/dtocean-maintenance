@@ -380,20 +380,20 @@ class LCOE_Calculator(object):
                     # Control_Param['checkNoSolution'] is False -> do not check the feasibility of logistic solution before the simulation
                     Control_Param['checkNoSolution'] = False 
                                                                       
-                    # dtocean_operations print flag               
-                    # Control_Param['dtocean_operations_PRINT_FLAG'] is True  -> print is allowed inside of dtocean_operations
-                    # Control_Param['dtocean_operations_PRINT_FLAG'] is False -> print is not allowed inside of dtocean_operations
-                    Control_Param['dtocean_operations_PRINT_FLAG'] = True 
+                    # dtocean_maintenance print flag               
+                    # Control_Param['dtocean_maintenance_PRINT_FLAG'] is True  -> print is allowed inside of dtocean_maintenance
+                    # Control_Param['dtocean_maintenance_PRINT_FLAG'] is False -> print is not allowed inside of dtocean_maintenance
+                    Control_Param['dtocean_maintenance_PRINT_FLAG'] = True 
                     
                     # dtocean-logistics print flag               
                     # Control_Param['dtocean-logistics_PRINT_FLAG'] is True  -> print is allowed inside of dtocean-logistics
                     # Control_Param['dtocean-logistics_PRINT_FLAG'] is False -> print is not allowed inside of dtocean-logistics
                     Control_Param['dtocean-logistics_PRINT_FLAG'] = True 
                     
-                    # dtocean_operations test flag               
-                    # Control_Param['dtocean_operations_TEST_FLAG'] is True  -> print the results in excel files
-                    # Control_Param['dtocean_operations_TEST_FLAG'] is False -> do not print the results in excel files
-                    Control_Param['dtocean_operations_TEST_FLAG'] = True                   
+                    # dtocean_maintenance test flag               
+                    # Control_Param['dtocean_maintenance_TEST_FLAG'] is True  -> print the results in excel files
+                    # Control_Param['dtocean_maintenance_TEST_FLAG'] is False -> do not print the results in excel files
+                    Control_Param['dtocean_maintenance_TEST_FLAG'] = True                   
                                                             
                     ###############################################################################
                     ###############################################################################
@@ -501,7 +501,7 @@ class LCOE_Calculator(object):
             self.__timeExtensionDeratingCoBaMaHour (float) [hours]    : time extension in case of condition based maintenance after the detction of soh_threshold  
             self.__checkNoSolution (bool) [-]                         : see below
             self.__integrateSelectPort (bool) [-]                     : see below 
-            self.__dtocean_operations_PRINT_FLAG (bool) [-]           : see below
+            self.__dtocean_maintenance_PRINT_FLAG (bool) [-]           : see below
             self.__dtocean-logistics_PRINT_FLAG (bool) [-]            : see below              
           
             ###############################################################################
@@ -518,20 +518,20 @@ class LCOE_Calculator(object):
             # self.__checkNoSolution is False -> do not check the feasibility of logistic solution before the simulation
             self.__checkNoSolution
              
-            # dtocean_operations print flag               
-            # self.__dtocean_operations_PRINT_FLAG is True  -> print is allowed inside of dtocean_operations
-            # self.__dtocean_operations_PRINT_FLAG is False -> print is not allowed inside of dtocean_operations
-            self.__dtocean_operations_PRINT_FLAG
+            # dtocean_maintenance print flag               
+            # self.__dtocean_maintenance_PRINT_FLAG is True  -> print is allowed inside of dtocean_maintenance
+            # self.__dtocean_maintenance_PRINT_FLAG is False -> print is not allowed inside of dtocean_maintenance
+            self.__dtocean_maintenance_PRINT_FLAG
             
             # dtocean-logistics print flag               
             # self.__dtocean-logistics_PRINT_FLAG is True  -> print is allowed inside of dtocean-logistics
             # self.__dtocean-logistics_PRINT_FLAG is False -> print is not allowed inside of dtocean-logistics
             self.__dtocean-logistics_PRINT_FLAG
             
-            # dtocean_operations test flag               
-            # self.__dtocean_operations_TEST_FLAG is True  -> print the results in excel files
-            # self.__dtocean_operations_TEST_FLAG is False -> do not print the results in excel files
-            self.__dtocean_operations_TEST_FLAG
+            # dtocean_maintenance test flag               
+            # self.__dtocean_maintenance_TEST_FLAG is True  -> print the results in excel files
+            # self.__dtocean_maintenance_TEST_FLAG is False -> do not print the results in excel files
+            self.__dtocean_maintenance_TEST_FLAG
             
             # Flag read from RAM
             # self.__readFailureRateFromRAM is True  -> Failure rate is read from RAM
@@ -1001,7 +1001,7 @@ class LCOE_Calculator(object):
                 
                 
         #######################################################################                  
-        # Start: Flags for dtocean_operations test purposes
+        # Start: Flags for dtocean_maintenance test purposes
         
         # self.__integrateSelectPort is True  -> call OM_PortSelection
         # self.__integrateSelectPort is False -> do not call OM_PortSelection, set constant values for port parameters
@@ -1011,20 +1011,20 @@ class LCOE_Calculator(object):
         # self.__checkNoSolution is False -> do not check the feasibility of logistic solution before the simulation
         self.__checkNoSolution = self.__Control_Param['checkNoSolution']
                         
-        # dtocean_operations print flag               
-        # self.__dtocean_operations_PRINT_FLAG is True  -> print is allowed inside of dtocean_operations
-        # self.__dtocean_operations_PRINT_FLAG is False -> print is not allowed inside of dtocean_operations
-        self.__dtocean_operations_PRINT_FLAG = self.__Control_Param['dtocean_operations_PRINT_FLAG'] 
+        # dtocean_maintenance print flag               
+        # self.__dtocean_maintenance_PRINT_FLAG is True  -> print is allowed inside of dtocean_maintenance
+        # self.__dtocean_maintenance_PRINT_FLAG is False -> print is not allowed inside of dtocean_maintenance
+        self.__dtocean_maintenance_PRINT_FLAG = self.__Control_Param['dtocean_maintenance_PRINT_FLAG'] 
         
         # dtocean-logistics print flag               
         # self.__dtocean_logistics_PRINT_FLAG is True  -> print is allowed inside of dtocean-logistics
         # self.__dtocean_logistics_PRINT_FLAG is False -> print is not allowed inside of dtocean-logistics
         self.__dtocean_logistics_PRINT_FLAG = self.__Control_Param['dtocean_logistics_PRINT_FLAG']
         
-        # dtocean_operations test flag               
-        # self.__dtocean_operations_TEST_FLAG is True  -> print the results in excel files
-        # self.__dtocean_operations_TEST_FLAG is False -> do not print the results in excel files
-        self.__dtocean_operations_TEST_FLAG = self.__Control_Param['dtocean_operations_TEST_FLAG']
+        # dtocean_maintenance test flag               
+        # self.__dtocean_maintenance_TEST_FLAG is True  -> print the results in excel files
+        # self.__dtocean_maintenance_TEST_FLAG is False -> do not print the results in excel files
+        self.__dtocean_maintenance_TEST_FLAG = self.__Control_Param['dtocean_maintenance_TEST_FLAG']
         
         # Flag read from RAM
         # self.__readFailureRateFromRAM is True  -> Failure rate is read from RAM
@@ -1531,7 +1531,7 @@ class LCOE_Calculator(object):
                     
                     indexNoSolutionsFound.append([iCnt,ves_req,sp_dry_mass,sp_length,sp_width,sp_height])
                     
-                    if self.__dtocean_operations_PRINT_FLAG == True:                                                   
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:                                                   
                         print 'WP6: loop = ', loop
                         print 'WP6: ComponentID = ', ComponentID 
                         print 'WP6: RA_ID = ', RA_ID 
@@ -1542,7 +1542,7 @@ class LCOE_Calculator(object):
                         print ''
                         print '' 
                 '''else:
-                    if self.__dtocean_operations_PRINT_FLAG == True:                                                     
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:                                                     
                         print 'WP6: loop = ', loop
                         print 'WP6: ComponentID = ', ComponentID 
                         print 'WP6: RA_ID = ', RA_ID 
@@ -1637,7 +1637,7 @@ class LCOE_Calculator(object):
         # make instance of arrayClass
         self.__arrayPTR = array(self.__startOperationDate, self.__operationTimeDay, self.__rcompvalues,
                                 self.__rsubsysvalues, self.__eleclayout, self.__systype, self.__UnCoMa_eventsTableKeys,
-                                self.__NoPoisson_eventsTableKeys, self.__dtocean_operations_PRINT_FLAG, self.__readFailureRateFromRAM)        
+                                self.__NoPoisson_eventsTableKeys, self.__dtocean_maintenance_PRINT_FLAG, self.__readFailureRateFromRAM)        
         
         
         # Read from RAM and calculate the poisson events of failure rates 
@@ -2310,7 +2310,7 @@ class LCOE_Calculator(object):
                         loop = 0                   
                 else:                
                  
-                    if self.__dtocean_operations_PRINT_FLAG == True:
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                         
                         print 'WP6: ******************************************************'
                         print 'WP6: actIdxOfCoBaMa = ', self.__actIdxOfCoBaMa
@@ -2448,14 +2448,14 @@ class LCOE_Calculator(object):
                     self.__calcLogistic() 
                     stop_time_logistic = timeit.default_timer()
                     
-                    if self.__dtocean_operations_PRINT_FLAG == True:
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                         print 'calcLogistic: Simulation Duration [s]: ' + str(stop_time_logistic - start_time_logistic)
                         
                         
 
                     if self.__om_logistic['findSolution'] == 'NoSolutionsFound':
                                                    
-                        if self.__dtocean_operations_PRINT_FLAG == True:
+                        if self.__dtocean_maintenance_PRINT_FLAG == True:
                             print 'WP6: ErrorID = NoSolutionsFound!'                                                                     
                             print 'WP6: values = ', values 
 
@@ -2463,7 +2463,7 @@ class LCOE_Calculator(object):
                         
                         if self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
                             
-                            if self.__dtocean_operations_PRINT_FLAG == True:                                                         
+                            if self.__dtocean_maintenance_PRINT_FLAG == True:                                                         
                                 print 'WP6: ErrorID = NoWeatherWindowFound!'
                                 print 'WP6: values = ', values                         
                         
@@ -2782,7 +2782,7 @@ class LCOE_Calculator(object):
                     # time consumption CaBaMa 
                     stop_time_CoBaMa = timeit.default_timer()
                     
-                    if self.__dtocean_operations_PRINT_FLAG == True:
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                         print 'calcCoBaMa: Simulation Duration [s]  : ' + str((stop_time_CoBaMa - start_time_CoBaMa)-(stop_time_logistic - start_time_logistic))
                                          
             # calandar based maintenance 
@@ -2854,7 +2854,7 @@ class LCOE_Calculator(object):
                     self.__repairActionDate = datetime.datetime.strptime(str(currentStartActionDate), self.__strFormat2) 
                     repairActionDateStr     = currentStartActionDate.strftime(self.__strFormat1)
                                         
-                    if self.__dtocean_operations_PRINT_FLAG == True:                           
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:                           
                         print 'WP6: ******************************************************'
                         print 'WP6: actIdxOfCaBaMa = ', self.__actIdxOfCaBaMa
                         print 'WP6: ComponentID = ', ComponentID 
@@ -3029,7 +3029,7 @@ class LCOE_Calculator(object):
                     self.__calcLogistic() 
                     stop_time_logistic = timeit.default_timer()
                     
-                    if self.__dtocean_operations_PRINT_FLAG == True:
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                         print 'calcLogistic: Simulation Duration [s]: ' + str(stop_time_logistic - start_time_logistic)
                     
                     
@@ -3039,7 +3039,7 @@ class LCOE_Calculator(object):
                                             
                     if self.__om_logistic['findSolution'] == 'NoSolutionsFound' or self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
                         
-                        if self.__dtocean_operations_PRINT_FLAG == True:
+                        if self.__dtocean_maintenance_PRINT_FLAG == True:
                                                 
                             if self.__om_logistic['findSolution'] == 'NoSolutionsFound':
                                  print 'WP6: ErrorID = NoSolutionsFound!'
@@ -3181,7 +3181,7 @@ class LCOE_Calculator(object):
                     # time consumption CaBaMa 
                     stop_time_CaBaMa = timeit.default_timer()
                     
-                    if self.__dtocean_operations_PRINT_FLAG == True:
+                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                         print 'calcCaBaMa: Simulation Duration [s]  : ' + str((stop_time_CaBaMa - start_time_CaBaMa)-(stop_time_logistic - start_time_logistic))
    
                     if self.__om_logistic['findSolution'] == 'SolutionFound':
@@ -3344,7 +3344,7 @@ class LCOE_Calculator(object):
                                                                  
                     if foundDeleteFlag == False:                
                    
-                        if self.__dtocean_operations_PRINT_FLAG == True:
+                        if self.__dtocean_maintenance_PRINT_FLAG == True:
                             
                             print 'WP6: ******************************************************'
                             print 'WP6: actIdxOfUnCoMa = ', self.__actIdxOfUnCoMa
@@ -3486,12 +3486,12 @@ class LCOE_Calculator(object):
                         
                         om_logistic = self.__om_logistic
                                             
-                        if self.__dtocean_operations_PRINT_FLAG == True:
+                        if self.__dtocean_maintenance_PRINT_FLAG == True:
                             print 'calcLogistic: Simulation Duration [s]: ' + str(stop_time_logistic - start_time_logistic)
                                                                
                         if self.__om_logistic['findSolution'] == 'NoSolutionsFound':
                                                        
-                            if self.__dtocean_operations_PRINT_FLAG == True:
+                            if self.__dtocean_maintenance_PRINT_FLAG == True:
                                 print 'WP6: ErrorID = NoSolutionsFound!'                                                                     
                                 print 'WP6: values = ', values 
                             
@@ -3499,7 +3499,7 @@ class LCOE_Calculator(object):
                             
                             if self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
                                 
-                                if self.__dtocean_operations_PRINT_FLAG == True:                                                         
+                                if self.__dtocean_maintenance_PRINT_FLAG == True:                                                         
                                     print 'WP6: ErrorID = NoWeatherWindowFound!'
                                     print 'WP6: values = ', values 
                               
@@ -3629,7 +3629,7 @@ class LCOE_Calculator(object):
                                     # time consumption UnCoMa 
                                     stop_time_UnCoMa = timeit.default_timer()
                                     
-                                    if self.__dtocean_operations_PRINT_FLAG == True:
+                                    if self.__dtocean_maintenance_PRINT_FLAG == True:
                                         print 'calcUnCoMa: Simulation Duration [s]  : ' + str((stop_time_UnCoMa - start_time_UnCoMa)-(stop_time_logistic - start_time_logistic))
                          
                 if self.__actIdxOfUnCoMa == len(self.__UnCoMa_eventsTable):

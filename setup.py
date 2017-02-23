@@ -81,18 +81,18 @@ setup(name='dtocean-operations',
       license="GPLv3",
       packages=find_packages(),
       install_requires=[
-          'dtocean-logistics>=1.0'
+          'dtocean-logistics>=1.0',
           'numpy',
           'pandas'
       ],
       entry_points={
           'console_scripts':
               [
-               'WP6-demo=dtocean_operations.command:test',
+               'WP6-demo=dtocean_maintenance.command:test',
                ]},
-      package_data={'dtocean_operations': ['databases/*.xlsx',
-                                           'databases/*.csv',
-                                           'databases/*.txt']
+      package_data={'dtocean_maintenance': ['databases/*.xlsx',
+                                            'databases/*.csv',
+                                            'databases/*.txt']
                     },
       zip_safe=False,
       tests_require=['pytest'],

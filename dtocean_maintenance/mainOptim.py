@@ -115,6 +115,6 @@ class LCOE_Optimiser(object):
                   
         except KeyboardInterrupt:
             
-            sys.exit('Interrupt by Keyboard in dtocean_operations')
+            sys.exit('Interrupt by Keyboard in dtocean_maintenance')
                                                              
         return self.__outputsOfWP6

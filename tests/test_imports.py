@@ -6,7 +6,7 @@ import pytest
 
 def test_logistics_import():
     
-    from dtocean_operations import LOGISTICS_main
+    from dtocean_maintenance import LOGISTICS_main
 
     # All tests must have an assertion (i.e something we made == something we
     # expect).
