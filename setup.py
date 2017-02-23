@@ -71,9 +71,9 @@ class CleanPyc(Command):
                 yield os.path.join(root, fname)
 
 
-setup(name='dtocean-operations',
+setup(name='dtocean-maintenance',
       version='1.0.0',
-      description='The operations and Maintenance module for the DTOcean tools',
+      description='The maintenance operations module for the DTOcean tools',
       author=('Bahram Panahandeh, '
               'Mathew Topper'),
       author_email=('bahram.panahandeh@iwes.fraunhofer.de, '
