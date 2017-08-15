@@ -1,43 +1,38 @@
 # -*- coding: utf-8 -*-
-"""This file simulates a simple interface between core and WP6 module
+"""This file simulates a simple interface between core and dtocean-maintenance
 
 .. module:: coreSimu
    :platform: Windows
    :synopsis: simulation of a simple interface between core and WP6 module for test purposes
    
 .. moduleauthor:: Bahram Panahandeh <bahram.panahandeh@iwes.fraunhofer.de>
-
+                  Mathew Topper <dataonlygreater@gmail.com>
 """
 
-import logging
-module_logger = logging.getLogger(__name__)
-
-# External module import
-# Do not write *.pyc on my PC
-import sys
-sys.dont_write_bytecode = True
-
 import os
+import sys
 import time
 import pickle
 import random
+import logging
 import datetime
-from collections import Counter
 
 import pandas as pd
 import numpy as np
-
-from dtocean_maintenance.mainOptim import LCOE_Optimiser
-from dtocean_maintenance.inputOM import inputOM
 
 from dtocean_logistics.load import load_phase_order_data, load_time_olc_data
 from dtocean_logistics.load import load_eq_rates
 from dtocean_logistics.load import load_sf
 from dtocean_logistics.load import load_vessel_data, load_equipment_data
 from dtocean_logistics.load import load_port_data
-from dtocean_logistics.load.wp_bom import load_user_inputs, load_hydrodynamic_outputs
+from dtocean_logistics.load.wp_bom import (load_user_inputs,
+                                           load_hydrodynamic_outputs)
 from dtocean_logistics.load.wp_bom import load_electrical_outputs
 
+from dtocean_maintenance.main import LCOE_Optimiser
+from dtocean_maintenance.input import inputOM
+
+module_logger = logging.getLogger(__name__)
 
 
 # dummy function to load files from the database folder of reliability    
@@ -121,11 +116,11 @@ def database_operations(file, mode):
     mod_path = os.path.dirname(os.path.realpath(__file__)) 
 
     if 'coreSimu' in sys.argv[0] or 'coresimu' in sys.argv[0]:
-        fpath = os.path.join('..\\tests\databases\dtocean-operations',
+        fpath = os.path.join('..\\tests\databases\dtocean-maintenance',
                              '{0}'.format(file))
        
     else:
-        fpath = os.path.join('databases\dtocean-operations',
+        fpath = os.path.join('databases\dtocean-maintenance',
                              '{0}'.format(file))      
                 
     db_path = os.path.join(mod_path, fpath)
