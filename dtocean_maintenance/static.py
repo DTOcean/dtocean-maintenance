@@ -6,36 +6,30 @@
    :synopsis: implementation of the static methods of WP6 module
    
 .. moduleauthor:: Bahram Panahandeh <bahram.panahandeh@iwes.fraunhofer.de>
+                  Mathew Topper <dataonlygreater@gmail.com>
 """
 
 import math
 import random
-import numpy as np
 import datetime
 
-# External module import
-# Do not write *.pyc on my PC
-import sys
-sys.dont_write_bytecode = True
+import numpy as np
 
 
-           
-'''poissonProcess function: Estimation of random failure occurence of components
-                                              
-Args:              
-    startOperationDate (timedate) : start date of operation
-    simulationtime (float)        : simulation time [day]
-    failureRate (float)           : failure rate [1/day]
-
-Attributes:         
-    no attributes                      
-
-Returns:
-    randomList [list] : random failure occurence of a component [1/day]
-  
-''' 
-# poisson process computational code for dtocean-operations-and-maintenance
 def poissonProcess(startOperationDate, simulationTime, failureRate):
+    
+    '''poissonProcess function: Estimation of random failure occurence of
+    components
+                                                  
+    Args:              
+        startOperationDate (timedate) : start date of operation
+        simulationtime (float)        : simulation time [day]
+        failureRate (float)           : failure rate [1/day]
+    
+    Returns:
+        randomList [list] : random failure occurence of a component [1/day]
+      
+    ''' 
     
     # result of poisson process
     randomList = []  
@@ -61,10 +55,12 @@ def poissonProcess(startOperationDate, simulationTime, failureRate):
                                                 startOperationDate.day,
                                                 startOperationDate.hour)
         
-    endOperationDate = dummyStartOperationDate + datetime.timedelta(days = simulationTime)
+    endOperationDate = dummyStartOperationDate + \
+                                datetime.timedelta(days=simulationTime)
      
     # poisson trial loop   
-    for lCnt in range(0,loopNumber):  
+    for lCnt in range(0, loopNumber):
+        
         timeStepAll = 0 
         timeStep = [] 
         number = 0     
@@ -78,34 +74,41 @@ def poissonProcess(startOperationDate, simulationTime, failureRate):
             timeStep.append(dt)
         
         #delete last entries
-        number = number-1
+        number = number - 1
         del timeStep[-1]
+        
         #save loop results
         numberLoop.append(number)
         timeStepLoop.append(timeStep)
     
-    upperPercentileValue = np.percentile(numberLoop,upperPercentile)
-    lowerPercentileValue = np.percentile(numberLoop,lowerPercentile)
+    upperPercentileValue = np.percentile(numberLoop, upperPercentile)
+    lowerPercentileValue = np.percentile(numberLoop, lowerPercentile)
     
-    #AllValidTrials = [x for x in numberLoop if ((x>lowerPercentileValue)&(x<upperPercentileValue))]
-    for lCnt in range(0,loopNumber):
-        if ((numberLoop[lCnt]>=lowerPercentileValue)&(numberLoop[lCnt]<=upperPercentileValue)):
+    for lCnt in range(0, loopNumber):
+        
+        if ((numberLoop[lCnt] >= lowerPercentileValue) & 
+            (numberLoop[lCnt] <= upperPercentileValue)):
+            
             numberLoopFilt.append(numberLoop[lCnt])
             timeStepLoopFilt.append(timeStepLoop[lCnt])
     
-    if len(numberLoopFilt)>0:       
-        loopIndex = random.randint(0,len(numberLoopFilt)-1)    
+    if len(numberLoopFilt) > 0:
+        
+        loopIndex = random.randint(0, len(numberLoopFilt) - 1)    
         timeStep = timeStepLoopFilt[loopIndex]
-        number = numberLoopFilt[loopIndex] 
+        number = numberLoopFilt[loopIndex]
+        
     else:
+        
         timeStep = []
         number = 0
           
     TimeStamp = dummyStartOperationDate
     
-    for iCnt in range(0,len(timeStep)):
-        AddTime = int(np.round(timeStep[iCnt]))
-        TimeStamp = TimeStamp + datetime.timedelta(days = AddTime)
+    for iCnt in range(0, len(timeStep)):
+        
+        addTime = int(np.round(timeStep[iCnt]))
+        TimeStamp = TimeStamp + datetime.timedelta(days=addTime)
         
         # take only the events less than endOperationDate
         
@@ -115,6 +118,5 @@ def poissonProcess(startOperationDate, simulationTime, failureRate):
         else:
             break
             
-    # return randomList     
     return randomList   
    
