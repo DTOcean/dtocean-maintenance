@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """This file simulates a simple interface between core and dtocean-maintenance
 
-.. module:: coreSimu
-   :platform: Windows
-   :synopsis: simulation of a simple interface between core and WP6 module for test purposes
-   
 .. moduleauthor:: Bahram Panahandeh <bahram.panahandeh@iwes.fraunhofer.de>
                   Mathew Topper <dataonlygreater@gmail.com>
 """
