@@ -3253,7 +3253,6 @@ class LCOE_Calculator(object):
         ComponentID      = str(self.__CaBaMa_eventsTable.ComponentID[idx])
         shortid          = int(ComponentID[-3:len(ComponentID)])
 
-
         # find the blocks in CaBaMa
         if 'device' in ComponentType:
             CaBaMaTableQueryDeviceID  = ComponentType

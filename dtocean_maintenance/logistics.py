@@ -1,6 +1,7 @@
 """
 @author: WavEC Offshore Renewables, Mathew Topper
-email: boris.teillant@wavec.org; paulo@wavec.org, pedro.vicente@wavec.org
+email: boris.teillant@wavec.org; paulo@wavec.org, pedro.vicente@wavec.org,
+       dataonlygreater@gmail.com
 
 This is the logistics assesmment module.
 
@@ -59,45 +60,45 @@ def om_logistics_main(vessels_0,
                       connectors,
                       om,
                       PRINT_FLAG):
-    
+
     """
     Parameters
     ----------
     vessels(DataFrame): Panda table containing the vessel database
-    
+
     equipments (DataFrame): Panda table containing the equipment database
-    
+
     ports (DataFrame): Panda table containing the ports database
-    
+
     user_inputs (dict):
         dictionnary containing all required inputs to Logistics coming from
         hydrodynamics/end-user:
          'device' (Dataframe): inputs required from the device
          'metocean' (Dataframe): metocean data
-    
+
     hydrodynamic_outputs (dict):
         dictionnary containing all required inputs to the Logistics module
         coming from the Hydrodynamics module:
          'units' (DataFrame): number of devices
          'position' (DataFrame): UTM position of the devices
-    
-    O&M_outputs (dict): 
-        dictionnary containing all required inputs to logistics coming from 
+
+    O&M_outputs (dict):
+        dictionnary containing all required inputs to logistics coming from
         maintenance module
-    
+
     'LogPhase1' (DataFrame):
         All inputs required for LpM1 logistic phase as defined by main
         module
-        
+
     Others...
-    
+
     Returns
     -------
-    
+
     install (dict):
         dictionnary compiling all key results obtained from the assessment of
         the logistic phases:
-            
+
         'requirement' (tuple):
             minimum requirements returned from thefeasibility functions
         'eq_select' (dict):
@@ -136,9 +137,9 @@ def om_logistics_main(vessels_0,
                                   port_sf,
                                   vessel_sf,
                                   eq_sf)
-    
+
 #    stop_time_sf = timeit.default_timer()
-    # print 'Safety factors simulation time [s]: ' + 
+    # print 'Safety factors simulation time [s]: ' +
     # str(stop_time_sf - start_time_sf)
 
     start_time = timeit.default_timer()
