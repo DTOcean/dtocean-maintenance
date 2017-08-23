@@ -320,7 +320,6 @@ class Array(object):
                     arrayDict[deviceID]['CaBaMaOpEventsIndexFM'] = []
                     arrayDict[deviceID]['CaBaMaCostLogistic'] = []
                     arrayDict[deviceID]['CaBaMaCostOM'] = []
-                    arrayDict[deviceID]['CaBaMaNoWeatherWindow'] = False
 
                     # for CoBaMa without derating
                     arrayDict[deviceID]['CoBaMaOpEvents'] = []
@@ -354,7 +353,6 @@ class Array(object):
                 arrayDict[componentID]['CoBaMaCostLogistic']    = []
                 arrayDict[componentID]['CoBaMaCostOM']          = []
                 arrayDict[componentID]['UnCoMaNoWeatherWindow'] = False
-                arrayDict[componentID]['CaBaMaNoWeatherWindow'] = False
                 arrayDict[componentID]['CoBaMaNoWeatherWindow'] = False
 
             n_modes = component[componentID]['number_failure_modes']
@@ -533,7 +531,6 @@ class Array(object):
 
         # start index with 0
         eventsTable.reset_index(drop=True, inplace=True)
-
 
 #        self.__NoPoisson_eventsTableKeys = ['repairActionEvents',
 #                                            'failureEvents',
