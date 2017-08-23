@@ -1,0 +1,9 @@
+# REQUIREMENTS FOR CONDA INSTALLATION
+
+# INSTALLATION REQUIRED DEPENDENCIES
+dtocean-logistics =1.1.dev1
+numpy
+pandas
+
+# TEST DEPENDENCIES
+pytest-cov
