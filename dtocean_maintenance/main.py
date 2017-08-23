@@ -409,8 +409,6 @@ class LCOE_Calculator(object):
                     based maintenance]
                 checkNoSolution (bool) [-]:
                     see below
-                checkNoSolutionWP6Files (bool) [-]:
-                    see below
                 integrateSelectPort (bool) [-]:
                     see below)
 
@@ -471,7 +469,7 @@ class LCOE_Calculator(object):
         self.__annual_Energy_Production_perD (list of float) [Wh]:
             Annual energy production per device
         self.__NrOfDevices (int) [-]: Number of devices
-        self.__NrOfTurnOutDevices (int) [-]: Number of turn out devices
+        self.__NrOfTurnOffDevices (int) [-]: Number of devices turned off
         self.__operationTimeYear (float) [year]:
             Operation time in years (mission time)
         self.__operationTimeDay (float) [day]: Operation time in days
@@ -583,7 +581,6 @@ class LCOE_Calculator(object):
             time extension in case of condition based maintenance after the
             detction of soh_threshold
         self.__checkNoSolution (bool) [-]: see below
-        self.__integrateSelectPort (bool) [-]: see below
         self.__dtocean_maintenance_PRINT_FLAG (bool) [-]: see below
         self.__dtocean-logistics_PRINT_FLAG (bool) [-]: see below
 
@@ -593,12 +590,6 @@ class LCOE_Calculator(object):
         Some of the function developed by logistic takes some times for
         running. With the following flags is possible to control the call of
         such functions.
-
-        self.__integrateSelectPort is True  ->
-            call OM_PortSelection
-        self.__integrateSelectPort is False ->
-            do not call OM_PortSelection, set constant values for port
-            parameters
 
         self.__checkNoSolution is True  ->
             check the feasibility of logistic solution before the simulation
@@ -619,11 +610,6 @@ class LCOE_Calculator(object):
             print the results in excel files
         self.__dtocean_maintenance_TEST_FLAG is False ->
             do not print the results in excel files
-
-        self.__readFailureRateFromRAM is True  ->
-            Failure rate is read from RAM
-        self.__readFailureRateFromRAM is False ->
-            Failure rate is read from component table (IWES)
 
         self.__ignoreWeatherWindow is True  ->
             The case "NoWeatherWindowFound" will be ignored
@@ -676,6 +662,7 @@ class LCOE_Calculator(object):
         # For converting between datetime and string
         self.__strFormat1 = "%d:%m:%Y %H:%M:%S"
         self.__strFormat2 = "%Y-%m-%d %H:%M:%S"
+        self.__strFormat3 = "%Y-%m-%d %H:%M:%S.%f"
 
         # Hours in one day
         self.__dayHours = 24.0
@@ -718,7 +705,7 @@ class LCOE_Calculator(object):
         self.__NrOfDevices = self.__Simu_Param['Nbodies']
 
         # Nr of turn out devices []
-        self.__NrOfTurnOutDevices = 0
+        self.__NrOfTurnOffDevices = 0
 
         # Operation time in years (mission time)
         self.__operationTimeYear = float(self.__Simu_Param['missionTime'])
@@ -858,8 +845,12 @@ class LCOE_Calculator(object):
             for iCnt in range(0,self.__Failure_Mode.shape[1]):
 
                 column = self.__Failure_Mode.columns.values[iCnt]
-                capex_condition = self.__Failure_Mode[column][
-                                        'CAPEX_condition_based_maintenance']
+                failure_mode = self.__Failure_Mode[column]
+                failure_mode = failure_mode.apply(pd.to_numeric,
+                                                  errors="ignore")
+                
+                capex_condition = failure_mode[
+                                         'CAPEX_condition_based_maintenance']
 
                 if not math.isnan(capex_condition) and capex_condition > 0:
 
@@ -908,15 +899,15 @@ class LCOE_Calculator(object):
         self.__portDistIndex['inspection'] = []
         self.__portDistIndex['repair']     = []
 
-        # Default values for port
-        self.__dummyDist_port   = 0.1#190
-        self.__dummyPort_Index  = 21
-
-        self.__portDistIndex['inspection'].append(self.__dummyDist_port)
-        self.__portDistIndex['inspection'].append(self.__dummyPort_Index)
-
-        self.__portDistIndex['repair'].append(self.__dummyDist_port)
-        self.__portDistIndex['repair'].append(self.__dummyPort_Index)
+#        # Default values for port
+#        self.__dummyDist_port   = 0.1#190
+#        self.__dummyPort_Index  = 21
+#
+#        self.__portDistIndex['inspection'].append(self.__dummyDist_port)
+#        self.__portDistIndex['inspection'].append(self.__dummyPort_Index)
+#
+#        self.__portDistIndex['repair'].append(self.__dummyDist_port)
+#        self.__portDistIndex['repair'].append(self.__dummyPort_Index)
 
         # Declaration of variable for logistic (dict)
 
@@ -1205,8 +1196,6 @@ class LCOE_Calculator(object):
         #######################################################################
         # Start: Flags for dtocean_maintenance test purposes
 
-        self.__integrateSelectPort = self.__Control_Param[
-                                            'integrateSelectPort']
         self.__checkNoSolution = self.__Control_Param['checkNoSolution']
         self.__dtocean_maintenance_PRINT_FLAG = self.__Control_Param[
                                             'dtocean_maintenance_PRINT_FLAG']
@@ -1214,8 +1203,6 @@ class LCOE_Calculator(object):
                                             'dtocean_logistics_PRINT_FLAG']
         self.__dtocean_maintenance_TEST_FLAG = self.__Control_Param[
                                             'dtocean_maintenance_TEST_FLAG']
-        self.__readFailureRateFromRAM = self.__Control_Param[
-                                            'readFailureRateFromRAM']
         self.__ignoreWeatherWindow = self.__Control_Param[
                                             'ignoreWeatherWindow']
 
@@ -1344,9 +1331,9 @@ class LCOE_Calculator(object):
 
         # Initialisation
         self.__initCalc()
+        self.__initPorts()
 
-        if (self.__integrateSelectPort == True or
-            self.__checkNoSolution == True):
+        if self.__checkNoSolution == True:
 
             self.__initCheck()
 
@@ -1469,8 +1456,7 @@ class LCOE_Calculator(object):
                                 self.__systype,
                                 self.__UnCoMa_eventsTableKeys,
                                 self.__NoPoisson_eventsTableKeys,
-                                self.__dtocean_maintenance_PRINT_FLAG,
-                                self.__readFailureRateFromRAM)
+                                self.__dtocean_maintenance_PRINT_FLAG)
 
         # Read from RAM and calculate the poisson events of failure rates
         (self.__arrayDict,
@@ -1502,7 +1488,10 @@ class LCOE_Calculator(object):
                 belongsTo = self.__eventsTableNoPoisson.belongsTo[iCnt]
                 indexFM = self.__eventsTableNoPoisson.indexFM[iCnt]
                 failureRate = self.__eventsTableNoPoisson.failureRate[iCnt]
-
+                
+                component = self.__Component[ComponentID]
+                component = component.apply(pd.to_numeric, errors="ignore")
+                
                 flagCaBaMa = False
 
                 if self.__Farm_OM['calendar_based_maintenance'] == True:
@@ -1513,77 +1502,66 @@ class LCOE_Calculator(object):
                         belongsToSort = belongsTo
 
                     flagDummy = False
-                    startActionDate = pd.to_datetime(self.__Component.at[
-                                    'start_date_calendar_based_maintenance',
-                                    ComponentID]).to_datetime()
-                    endActionDate = pd.to_datetime(self.__Component.at[
-                                    'end_date_calendar_based_maintenance',
-                                    ComponentID]).to_datetime()
-                    interval = self.__Component.at[
-                                    'interval_calendar_based_maintenance',
-                                    ComponentID]
+                    
+                    startActionDate = pd.to_datetime(
+                            component['start_date_calendar_based_maintenance'])
+                    endActionDate = pd.to_datetime(
+                            component['end_date_calendar_based_maintenance'])
+                    interval = component['interval_calendar_based_maintenance']
 
-                    if (type(startActionDate) != datetime.datetime or
-                        type(endActionDate) != datetime.datetime or
-                        math.isnan(interval) == True):
-                        flagDummy = True
+                    flagCaBaMa = True
 
-                    if flagDummy == False:
+                    if (self.__startOperationDate <= startActionDate and
+                        startActionDate <= self.__endOperationDate):
 
-                        flagCaBaMa = True
+                        startActionDateDummy = startActionDate
+                        endActionDateDummy = endActionDate
+                        
+                        n_days = interval * self.__yearDays
 
-                        if (self.__startOperationDate <= startActionDate and
-                            startActionDate <= self.__endOperationDate):
+                        startActionDateDummy = startActionDateDummy + \
+                                                        timedelta(days=n_days)
+                        endActionDateDummy = endActionDateDummy + \
+                                                        timedelta(days=n_days)
+                                                        
+                        while (startActionDateDummy < self.__endOperationDate):
 
-                            startActionDateDummy = startActionDate
-                            endActionDateDummy = endActionDate
+                            values = [startActionDateDummy,
+                                      endActionDateDummy,
+                                      startActionDateDummy,
+                                      endActionDateDummy,
+                                      belongsTo,
+                                      belongsToSort,
+                                      ComponentType,
+                                      ComponentSubType,
+                                      ComponentID,
+                                      FM_ID,
+                                      indexFM,
+                                      RA_ID,
+                                      0,
+                                      0]
 
-                            while (startActionDateDummy <
-                                               self.__endOperationDate):
+                            self.__CaBaMa_eventsTable.ix[loopCalendar] = values
 
-                                values = [startActionDateDummy,
-                                          endActionDateDummy,
-                                          startActionDateDummy,
-                                          endActionDateDummy,
-                                          belongsTo,
-                                          belongsToSort,
-                                          ComponentType,
-                                          ComponentSubType,
-                                          ComponentID,
-                                          FM_ID,
-                                          indexFM,
-                                          RA_ID,
-                                          0,
-                                          0]
-
-                                self.__CaBaMa_eventsTable.ix[loopCalendar] = \
-                                                                        values
-
-                                loopCalendar = loopCalendar + 1
-                                n_days = interval * self.__yearDays
-
-                                startActionDateDummy = startActionDateDummy + \
-                                    timedelta(days=n_days)
-                                endActionDateDummy = endActionDateDummy + \
-                                    timedelta(days=n_days)
+                            startActionDateDummy = startActionDateDummy + \
+                                                        timedelta(days=n_days)
+                            endActionDateDummy = endActionDateDummy + \
+                                                        timedelta(days=n_days)
+                                                        
+                            loopCalendar = loopCalendar + 1
 
                 if self.__Farm_OM['condition_based_maintenance'] == True:
 
                     flagDummy = False
-                    startActionDate = pd.to_datetime(self.__Component.at[
-                            'start_date_calendar_based_maintenance',
-                            ComponentID]).to_datetime()
-                    endActionDate   = pd.to_datetime(self.__Component.at[
-                            'end_date_calendar_based_maintenance',
-                            ComponentID]).to_datetime()
-                    threshold = self.__Component.at['soh_threshold',
-                                                    ComponentID] / 100.0
+                    startActionDate = pd.to_datetime(
+                            component['start_date_calendar_based_maintenance'])
+                    endActionDate = pd.to_datetime(
+                            component['end_date_calendar_based_maintenance'])
+                    threshold = component['soh_threshold'] / 100.0
 
-                    if (type(startActionDate) != datetime.datetime or
-                        type(endActionDate) != datetime.datetime or
-                        threshold < 0 or
-                        1 < threshold or
-                        math.isnan(threshold) == True):
+                    if (0 < threshold > 1 or
+                        math.isnan(threshold) or
+                        'Insp' in FM_ID):
 
                         flagDummy = True
 
@@ -1721,26 +1699,28 @@ class LCOE_Calculator(object):
                 logic = 'Insp' in FM_ID
 
                 if not logic:
-
+                
+                    repair_action = self.__Repair_Action[CompIDWithIndex]
+                    repair_action = repair_action.apply(pd.to_numeric,
+                                                        errors="ignore")
                     # repairAction
-                    shiftHoursDummy1 = self.__Repair_Action[
-                                                CompIDWithIndex]['delay_spare']
+                    shiftHoursDummy1 = repair_action['delay_spare']
 
-                    delay_crew = self.__Repair_Action[
-                                                CompIDWithIndex]['delay_crew']
-                    delay_org = self.__Repair_Action[
-                                        CompIDWithIndex]['delay_organisation']
+                    delay_crew = repair_action['delay_crew']
+                    delay_org = repair_action['delay_organisation']
                     shiftHoursDummy2 = delay_crew + delay_org
 
                 else:
-
+                    
                     # inspection
+                    inspection = self.__Inspection[CompIDWithIndex]
+                    inspection = inspection.apply(pd.to_numeric,
+                                                  errors="ignore")
+                    
                     shiftHoursDummy1 = 0
 
-                    delay_crew = self.__Inspection[
-                                                CompIDWithIndex]['delay_crew']
-                    delay_org = self.__Inspection[
-                                        CompIDWithIndex]['delay_organisation']
+                    delay_crew = inspection['delay_crew']
+                    delay_org = inspection['delay_organisation']
                     shiftHoursDummy2 = delay_crew + delay_org
 
                 shiftHours = float(max(shiftHoursDummy1, shiftHoursDummy2))
@@ -1776,538 +1756,442 @@ class LCOE_Calculator(object):
         self.__rcompvalues = self.__ramPTR.rcompvalues3
 
         return
+    
+    def __initPorts(self):
+        
+        outputsForPortSelection = pd.DataFrame(index=[0],
+                                               columns=self.__logisticKeys)
 
-    # Selection of port for inspection and repair
+        sp_dry_mass_dummy       = 0
+        sp_length_dummy         = 0
+        sp_width_dummy          = 0
+        sp_height_dummy         = 0
+
+        self.__portDistIndex['inspection'] = []
+        self.__portDistIndex['repair']     = []
+
+        for iCnt in range(0,len(self.__eventsTableNoPoisson)):
+
+            ComponentID = self.__eventsTableNoPoisson.ComponentID[iCnt]
+
+            indexFM = self.__eventsTableNoPoisson.indexFM[iCnt]
+            CompIDWithIndex = ComponentID + '_' + str(indexFM)
+            
+            failure_mode = self.__Failure_Mode[CompIDWithIndex]
+            failure_mode = failure_mode.apply(pd.to_numeric,
+                                              errors="ignore")
+
+            # max of values
+            sp_dry_mass = failure_mode['spare_mass']
+
+            if sp_dry_mass_dummy < sp_dry_mass:
+                sp_dry_mass_dummy = sp_dry_mass
+
+            sp_length = failure_mode['spare_length']
+
+            if sp_length_dummy < sp_length:
+                sp_length_dummy = sp_length
+
+            sp_width = failure_mode['spare_width']
+
+            if sp_width_dummy < sp_width:
+                sp_width_dummy = sp_width
+
+            sp_height = failure_mode['spare_height']
+
+            if sp_height_dummy < sp_height:
+                sp_height_dummy = sp_height
+
+        # Inspection case
+        # *****************************************************************
+        # *****************************************************************
+        # *****************************************************************
+        values = ['INS_PORT',
+                  '',
+                  '',
+                  '',
+                  '',
+                  self.__entry_point['x coord [m]'].ix[0],
+                  self.__entry_point['y coord [m]'].ix[0],
+                  self.__entry_point['zone [-]'].ix[0],
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  sp_dry_mass_dummy,
+                  sp_length_dummy,
+                  sp_width_dummy,
+                  sp_height_dummy,
+                  '',
+                  '',
+                  '',
+                  '',
+                  0]
+
+        outputsForPortSelection.ix[0] = values
+
+        om_port = select_port_OM.OM_port(outputsForPortSelection,
+                                         self.__ports)
+
+        self.__portDistIndex['inspection'].append(
+                om_port['Distance port-site [km]'])
+        self.__portDistIndex['inspection'].append(
+                om_port['Port database index [-]'])
+
+        # Repair case
+        # *****************************************************************
+        # *****************************************************************
+        # *****************************************************************
+        values = ['OM_PORT',
+                  '',
+                  '',
+                  '',
+                  '',
+                  self.__entry_point['x coord [m]'].ix[0],
+                  self.__entry_point['y coord [m]'].ix[0],
+                  self.__entry_point['zone [-]'].ix[0],
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  '',
+                  sp_dry_mass_dummy,
+                  sp_length_dummy,
+                  sp_width_dummy,
+                  sp_height_dummy,
+                  '',
+                  '',
+                  '',
+                  '',
+                  0]
+
+        outputsForPortSelection.ix[0] = values
+
+        # Port Selection based on input
+        om_port = select_port_OM.OM_port(outputsForPortSelection,
+                                         self.__ports)
+
+        self.__portDistIndex['repair'].append(
+                om_port['Distance port-site [km]'])
+        self.__portDistIndex['repair'].append(
+                om_port['Port database index [-]'])
+        
+        return
+
     def __initCheck(self):
 
-        '''__initCheck function: Selection of port for inspection and repair
-        and check "NoSolutionsFound"
+        '''__initCheck function: Check for "NoSolutionsFound" incompatibility
+        with the vessel and equipment databases
 
-        '''
+        '''        
 
-        dummyCheckNoSolution = True
+        indexNoSolutionsFound = []
+        loop = 0
 
-        # should OM_PortSelection from logistic be called?
-        if self.__integrateSelectPort == True:
+        for iCnt in range(0, len(self.__eventsTableNoPoisson)):
+            
+            ComponentType = self.__eventsTableNoPoisson.ComponentType[iCnt]
+            ComponentSubType = \
+                self.__eventsTableNoPoisson.ComponentSubType[iCnt]
+            ComponentID = self.__eventsTableNoPoisson.ComponentID[iCnt]
+            FM_ID = self.__eventsTableNoPoisson.FM_ID[iCnt]
+            RA_ID = self.__eventsTableNoPoisson.RA_ID[iCnt]
+            repairActionEvents = self.__startOperationDate
+            belongsTo = self.__eventsTableNoPoisson.belongsTo[iCnt]
+            repairActionDateStr = repairActionEvents.strftime(
+                                                        self.__strFormat1)
+            CompIDWithIndex = ComponentID + \
+                    '_' + str(self.__eventsTableNoPoisson.indexFM[iCnt])
+            
+            failure_mode = self.__Failure_Mode[CompIDWithIndex]
+            failure_mode = failure_mode.apply(pd.to_numeric,
+                                              errors="ignore")
+            
+            # for logistic
+            sp_dry_mass = failure_mode['spare_mass']
+            sp_length   = failure_mode['spare_length']
+            sp_width    = failure_mode['spare_width']
+            sp_height   = failure_mode['spare_height']
 
-            outputsForPortSelection = pd.DataFrame(index=[0],
-                                                   columns=self.__logisticKeys)
+            d_acc       = ''
+            d_om        = ''
+            helideck    = ''
+            Hs_acc      = ''
+            Tp_acc      = ''
+            Ws_acc      = ''
+            Cs_acc      = ''
+            Hs_om       = ''
+            Tp_om       = ''
+            Ws_om       = ''
+            Cs_om       = ''
 
-            # find the maximum of 'sp_dry_mass [kg]', 'sp_length [m]',
-            # 'sp_width [m]', 'sp_height [m]'
-            sp_dry_mass_dummy       = 0
-            #index_sp_dry_mass_dummy = 0
-
-            sp_length_dummy         = 0
-            #index_sp_length_dummy   = 0
-
-            sp_width_dummy          = 0
-            #index_sp_width_dummy    = 0
-
-            sp_height_dummy         = 0
-            #index_sp_height_dummy   = 0
-
-            self.__portDistIndex['inspection'] = []
-            self.__portDistIndex['repair']     = []
-
-            for iCnt in range(0,len(self.__eventsTableNoPoisson)):
-
-                # actualIndexOfRepairTable is determined
-                # do the the reapir
-                ComponentType = self.__eventsTableNoPoisson.ComponentType[iCnt]
-                ComponentSubType = \
-                    self.__eventsTableNoPoisson.ComponentSubType[iCnt]
-                ComponentID = self.__eventsTableNoPoisson.ComponentID[iCnt]
-                RA_ID = self.__eventsTableNoPoisson.RA_ID[iCnt]
-                FM_ID = self.__eventsTableNoPoisson.FM_ID[iCnt]
-                belongsTo = self.__eventsTableNoPoisson.belongsTo[iCnt]
-
-                indexFM = self.__eventsTableNoPoisson.indexFM[iCnt]
-                CompIDWithIndex = ComponentID + '_' + str(indexFM)
-
-                # max of values
-                sp_dry_mass = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_mass']
-
-                if sp_dry_mass_dummy < sp_dry_mass:
-                    sp_dry_mass_dummy = sp_dry_mass
-
-                sp_length = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_length']
-
-                if sp_length_dummy < sp_length:
-                    sp_length_dummy = sp_length
-
-                sp_width = self.__Failure_Mode[CompIDWithIndex]['spare_width']
-
-                if sp_width_dummy < sp_width:
-                    sp_width_dummy = sp_width
-
-                sp_height = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_height']
-
-                if sp_height_dummy < sp_height:
-                    sp_height_dummy = sp_height
-
-            # Inspection case
-            # *****************************************************************
-            # *****************************************************************
-            # *****************************************************************
-            values = ['INS_PORT',
-                      '',
-                      '',
-                      '',
-                      '',
-                      self.__entry_point['x coord [m]'].ix[0],
-                      self.__entry_point['y coord [m]'].ix[0],
-                      self.__entry_point['zone [-]'].ix[0],
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      sp_dry_mass_dummy,
-                      sp_length_dummy,
-                      sp_width_dummy,
-                      sp_height_dummy,
-                      '',
-                      '',
-                      '',
-                      '',
-                      0]
-
-            outputsForPortSelection.ix[0] = values
-
-            om_port = select_port_OM.OM_port(outputsForPortSelection,
-                                             self.__ports)
-
-            # Check if there is a solution
-            # Currently no possibility to check is implemented in logistic,
-            # set it to False
-            if False:
-
-                self.__errorFlag = True
-
-                ComponentType    = ''
-                ComponentSubType = ''
-                ComponentID      = ''
-                RA_ID            = ''
-                FM_ID            = ''
-                deck_area        = ''
-                deck_cargo       = ''
-                deck_loading     = ''
-                sp_dry_mass      = ''
-                sp_length        = ''
-                sp_width         = ''
-                sp_height        = ''
-
-                values = ['NoInspPortFound',
-                          ComponentID,
-                          ComponentType,
-                          ComponentSubType,
-                          FM_ID,
-                          RA_ID,
-                          deck_area,
-                          deck_cargo,
-                          deck_loading,
-                          sp_dry_mass,
-                          sp_length,
-                          sp_width,
-                          sp_height]
-
-                self.__errorTable.ix[iCnt] = values
-                dummyCheckNoSolution = False
-
-            else:
-
-                self.__portDistIndex['inspection'].append(
-                        om_port['Distance port-site [km]'])
-                self.__portDistIndex['inspection'].append(
-                        om_port['Port database index [-]'])
-
-
-            # Repair case
-            # *****************************************************************
-            # *****************************************************************
-            # *****************************************************************
-            values = ['OM_PORT',
-                      '',
-                      '',
-                      '',
-                      '',
-                      self.__entry_point['x coord [m]'].ix[0],
-                      self.__entry_point['y coord [m]'].ix[0],
-                      self.__entry_point['zone [-]'].ix[0],
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      '',
-                      sp_dry_mass_dummy,
-                      sp_length_dummy,
-                      sp_width_dummy,
-                      sp_height_dummy,
-                      '',
-                      '',
-                      '',
-                      '',
-                      0]
-
-
-            outputsForPortSelection.ix[0] = values
-
-            # Port Selection based on input
-
-            om_port = select_port_OM.OM_port(outputsForPortSelection,
-                                             self.__ports)
-
-            # Check if there is a solution
-            # Currently no possibility to check is implemented in logistic,
-            # set it to False
-            if False:
-
-                self.__errorFlag = True
-
-                ComponentType    = ''
-                ComponentSubType = ''
-                ComponentID      = ''
-                RA_ID            = ''
-                FM_ID            = ''
-                deck_area        = ''
-                deck_cargo       = ''
-                deck_loading     = ''
-                sp_dry_mass      = ''
-                sp_length        = ''
-                sp_width         = ''
-                sp_height        = ''
-
-                values = ['NoRepairPortFound',
-                          ComponentID,
-                          ComponentType,
-                          ComponentSubType,
-                          FM_ID,
-                          RA_ID,
-                          deck_area,
-                          deck_cargo,
-                          deck_loading,
-                          sp_dry_mass,
-                          sp_length,
-                          sp_width,
-                          sp_height]
-
-                self.__errorTable.ix[iCnt] = values
-
-                dummyCheckNoSolution = False
-
-            else:
-                self.__portDistIndex['repair'].append(
-                        om_port['Distance port-site [km]'])
-                self.__portDistIndex['repair'].append(
-                        om_port['Port database index [-]'])
-
-        if self.__checkNoSolution == True and dummyCheckNoSolution == True:
-
-            indexNoSolutionsFound = []
-
-            # NoSolutionsFound case
-            # *****************************************************************
-            # *****************************************************************
-            # *****************************************************************
-            loop = 0
-
-            for iCnt in range(0, len(self.__eventsTableNoPoisson)):
-
-                ComponentType = self.__eventsTableNoPoisson.ComponentType[iCnt]
-                ComponentSubType = \
-                    self.__eventsTableNoPoisson.ComponentSubType[iCnt]
-                ComponentID = self.__eventsTableNoPoisson.ComponentID[iCnt]
-                FM_ID = self.__eventsTableNoPoisson.FM_ID[iCnt]
-                RA_ID = self.__eventsTableNoPoisson.RA_ID[iCnt]
-                repairActionEvents = self.__startOperationDate
-                belongsTo = self.__eventsTableNoPoisson.belongsTo[iCnt]
-                repairActionDateStr = repairActionEvents.strftime(
-                                                            self.__strFormat1)
-                CompIDWithIndex = ComponentID + \
-                        '_' + str(self.__eventsTableNoPoisson.indexFM[iCnt])
+            if 'Insp' in FM_ID:
+                
+                inspection = self.__Inspection[CompIDWithIndex]
+                inspection = inspection.apply(pd.to_numeric,
+                                              errors="ignore")
 
                 # for logistic
-                sp_dry_mass = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_mass']
-                sp_length   = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_length']
-                sp_width    = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_width']
-                sp_height   = self.__Failure_Mode[CompIDWithIndex][
-                                                                'spare_height']
+                technician = inspection['number_technicians'] + \
+                             inspection['number_specialists']
+                Dist_port = self.__portDistIndex['inspection'][0]
+                Port_Index = self.__portDistIndex['inspection'][1]
 
-                d_acc       = ''
-                d_om        = ''
-                helideck    = ''
-                Hs_acc      = ''
-                Tp_acc      = ''
-                Ws_acc      = ''
-                Cs_acc      = ''
-                Hs_om       = ''
-                Tp_om       = ''
-                Ws_om       = ''
-                Cs_om       = ''
-
-                if 'Insp' in FM_ID:
-
-                    # for logistic
-                    technician = self.__Inspection[CompIDWithIndex][
-                                                    'number_technicians'] + \
-                                 self.__Inspection[CompIDWithIndex][
-                                                    'number_specialists']
-                    Dist_port = self.__portDistIndex['inspection'][0]
-                    Port_Index = self.__portDistIndex['inspection'][1]
-
-                else:
-
-                    # for logistic
-                    technician = self.__Repair_Action[CompIDWithIndex][
-                                                    'number_technicians'] + \
-                                 self.__Repair_Action[CompIDWithIndex][
-                                                     'number_specialists']
-                    Dist_port = self.__portDistIndex['repair'][0]
-                    Port_Index = self.__portDistIndex['repair'][1]
+            else:
+                
+                repair_action = self.__Repair_Action[CompIDWithIndex]
+                repair_action = repair_action.apply(pd.to_numeric,
+                                                    errors="ignore")
+                # for logistic
+                technician = repair_action['number_technicians'] + \
+                             repair_action['number_specialists']
+                Dist_port = self.__portDistIndex['repair'][0]
+                Port_Index = self.__portDistIndex['repair'][1]
 
 
-                if belongsTo == 'Array':
+            if belongsTo == 'Array':
 
-                    depth = self.__Simu_Param['arrayInfoLogistic'][
-                                                ComponentID]['depth']
-                    x_coord = self.__Simu_Param['arrayInfoLogistic'][
-                                                ComponentID]['x coord']
-                    y_coord = self.__Simu_Param['arrayInfoLogistic'][
-                                                ComponentID]['y coord']
-                    zone = self.__Simu_Param['arrayInfoLogistic'][
-                                                ComponentID]['zone']
-                    Bathymetry = self.__Simu_Param['arrayInfoLogistic'][
-                                                ComponentID]['Bathymetry']
-                    Soil_type = self.__Simu_Param['arrayInfoLogistic'][
-                                                ComponentID]['Soil type']
+                depth = self.__Simu_Param['arrayInfoLogistic'][
+                                            ComponentID]['depth']
+                x_coord = self.__Simu_Param['arrayInfoLogistic'][
+                                            ComponentID]['x coord']
+                y_coord = self.__Simu_Param['arrayInfoLogistic'][
+                                            ComponentID]['y coord']
+                zone = self.__Simu_Param['arrayInfoLogistic'][
+                                            ComponentID]['zone']
+                Bathymetry = self.__Simu_Param['arrayInfoLogistic'][
+                                            ComponentID]['Bathymetry']
+                Soil_type = self.__Simu_Param['arrayInfoLogistic'][
+                                            ComponentID]['Soil type']
 
-                else:
+            else:
 
-                    depth = self.__Simu_Param['arrayInfoLogistic'][
-                                                belongsTo]['depth']
-                    x_coord = self.__Simu_Param['arrayInfoLogistic'][
-                                                belongsTo]['x coord']
-                    y_coord = self.__Simu_Param['arrayInfoLogistic'][
-                                                belongsTo]['y coord']
-                    zone = self.__Simu_Param['arrayInfoLogistic'][
-                                                belongsTo]['zone']
-                    Bathymetry = self.__Simu_Param['arrayInfoLogistic'][
-                                                belongsTo]['Bathymetry']
-                    Soil_type = self.__Simu_Param['arrayInfoLogistic'][
-                                                belongsTo]['Soil type']
+                depth = self.__Simu_Param['arrayInfoLogistic'][
+                                            belongsTo]['depth']
+                x_coord = self.__Simu_Param['arrayInfoLogistic'][
+                                            belongsTo]['x coord']
+                y_coord = self.__Simu_Param['arrayInfoLogistic'][
+                                            belongsTo]['y coord']
+                zone = self.__Simu_Param['arrayInfoLogistic'][
+                                            belongsTo]['zone']
+                Bathymetry = self.__Simu_Param['arrayInfoLogistic'][
+                                            belongsTo]['Bathymetry']
+                Soil_type = self.__Simu_Param['arrayInfoLogistic'][
+                                            belongsTo]['Soil type']
 
-                if belongsTo == 'Array':
+            if belongsTo == 'Array':
 
-                    if 'Substation' in ComponentType:
-                        ComponentTypeLogistic = 'collection point'
-                        ComponentIDLogistic   = ComponentID
+                if 'Substation' in ComponentType:
+                    ComponentTypeLogistic = 'collection point'
+                    ComponentIDLogistic   = ComponentID
 
-                    elif 'subhub' in ComponentType:
-                        ComponentTypeLogistic = 'collection point'
-                        ComponentIDLogistic   = ComponentID
+                elif 'subhub' in ComponentType:
+                    ComponentTypeLogistic = 'collection point'
+                    ComponentIDLogistic   = ComponentID
 
-                    elif 'Export Cable' in ComponentType:
-                        ComponentTypeLogistic = 'static cable'
-                        ComponentIDLogistic   = \
-                                        int(ComponentID[-3:len(ComponentID)])
-
-                    else:
-                        ComponentTypeLogistic = ComponentType
-                        ComponentIDLogistic   = ComponentID
+                elif 'Export Cable' in ComponentType:
+                    ComponentTypeLogistic = 'static cable'
+                    ComponentIDLogistic   = ComponentID
 
                 else:
+                    ComponentTypeLogistic = ComponentType
+                    ComponentIDLogistic   = ComponentID
 
-                    # Adjustmet of the names to logistic
-                    # The name of subsystems in logistic and RAM are differnt
-                    if 'Dynamic cable' in ComponentSubType:
-                        ComponentTypeLogistic = 'dynamic cable'
-                        # problem with logistic database
-                        ComponentIDLogistic   = 0
+            else:
 
-                    elif 'Mooring line' in ComponentSubType:
-                        ComponentTypeLogistic = 'mooring line'
-                        ComponentIDLogistic   = \
-                                        int(ComponentID[-3:len(ComponentID)])
+                # Adjustmet of the names to logistic
+                if 'Dynamic cable' in ComponentSubType:
+                    ComponentTypeLogistic = 'dynamic cable'
+                    ComponentIDLogistic   = ComponentID
+                    
+                elif 'Mooring line' in ComponentSubType:
+                    ComponentTypeLogistic = 'mooring line'
+                    ComponentIDLogistic   = ComponentID
 
-                    elif 'Foundation' in ComponentSubType:
-                        ComponentTypeLogistic = 'foundation'
-                        ComponentIDLogistic   = ComponentID
+                elif 'Foundation' in ComponentSubType:
+                    ComponentTypeLogistic = 'foundation'
+                    ComponentIDLogistic   = ComponentID
 
-                    else:
-                        ComponentTypeLogistic = ComponentType
-                        ComponentIDLogistic   = ComponentID
+                else:
+                    ComponentTypeLogistic = ComponentType
+                    ComponentIDLogistic   = ComponentID
 
-                    if 'device' in ComponentTypeLogistic:
-                        ComponentTypeLogistic = 'device'
+                if 'device' in ComponentTypeLogistic:
+                    ComponentTypeLogistic = 'device'
 
 
-                # Calc logistic functions
-                start_time_logistic = timeit.default_timer()
+            # Calc logistic functions
+            start_time_logistic = timeit.default_timer()
 
-                # Values for logistic
-                values = [FM_ID,
-                          ComponentTypeLogistic,
-                          ComponentSubType,
-                          ComponentIDLogistic,
-                          depth,
-                          x_coord,
-                          y_coord,
-                          zone,
-                          repairActionDateStr,
-                          d_acc,
-                          d_om,
-                          str(helideck),
-                          Hs_acc,
-                          Tp_acc,
-                          Ws_acc,
-                          Cs_acc,
-                          Hs_om,
-                          Tp_om,
-                          Ws_om,
-                          Cs_om,
-                          technician,
-                          sp_dry_mass,
-                          sp_length,
-                          sp_width,
-                          sp_height,
-                          Dist_port,
-                          Port_Index,
-                          Bathymetry,
-                          Soil_type,
-                          self.__PrepTimeCalcUnCoMa
-                          ]
+            # Values for logistic
+            values = [FM_ID,
+                      ComponentTypeLogistic,
+                      ComponentSubType,
+                      ComponentIDLogistic,
+                      depth,
+                      x_coord,
+                      y_coord,
+                      zone,
+                      repairActionDateStr,
+                      d_acc,
+                      d_om,
+                      str(helideck),
+                      Hs_acc,
+                      Tp_acc,
+                      Ws_acc,
+                      Cs_acc,
+                      Hs_om,
+                      Tp_om,
+                      Ws_om,
+                      Cs_om,
+                      technician,
+                      sp_dry_mass,
+                      sp_length,
+                      sp_width,
+                      sp_height,
+                      Dist_port,
+                      Port_Index,
+                      Bathymetry,
+                      Soil_type,
+                      self.__PrepTimeCalcUnCoMa
+                      ]
 
-                #self.__om_logistic_outputs = pd.DataFrame(index=[0],columns=keys)
-                self.__wp6_outputsForLogistic.ix[0] = values
+            #self.__om_logistic_outputs = pd.DataFrame(index=[0],columns=keys)
+            self.__wp6_outputsForLogistic.ix[0] = values
 
-                # apply dafety factors in vessels parameters
-                (ports,
-                 vessels,
-                 equipments) = safety_factors(copy.deepcopy(self.__ports),
-                                              copy.deepcopy(self.__vessels),
-                                              copy.deepcopy(self.__equipments),
-                                              copy.deepcopy(self.__port_sf),
-                                              copy.deepcopy(self.__vessel_sf),
-                                              copy.deepcopy(self.__eq_sf))
+            # apply dafety factors in vessels parameters
+            (ports,
+             vessels,
+             equipments) = safety_factors(copy.deepcopy(self.__ports),
+                                          copy.deepcopy(self.__vessels),
+                                          copy.deepcopy(self.__equipments),
+                                          copy.deepcopy(self.__port_sf),
+                                          copy.deepcopy(self.__vessel_sf),
+                                          copy.deepcopy(self.__eq_sf))
 
-                # Collecting relevant port information
-                om_port_index = \
-                    self.__wp6_outputsForLogistic['Port_Index [-]'].ix[0]
+            # Collecting relevant port information
+            om_port_index = \
+                self.__wp6_outputsForLogistic['Port_Index [-]'].ix[0]
 
-                om_port = {}
-                om_port['Selected base port for installation'] = \
-                                                    ports.ix[om_port_index]
+            om_port = {}
+            om_port['Selected base port for installation'] = \
+                                                ports.ix[om_port_index]
+                                                
+                                                
+            # Convert to numeric if possible
+            self.__wp6_outputsForLogistic = \
+                self.__wp6_outputsForLogistic.apply(pd.to_numeric,
+                                                    errors='ignore')
 
 #                """
 #                 Initialising logistic operations and logistic phase
 #                """
-                logOp = logOp_init(self.__schedule_OLC)
+            logOp = logOp_init(self.__schedule_OLC)
 
-                logPhase_om = logPhase_om_init(logOp,
-                                               vessels,
-                                               equipments,
-                                               self.__wp6_outputsForLogistic)
+            logPhase_om = logPhase_om_init(logOp,
+                                           vessels,
+                                           equipments,
+                                           self.__wp6_outputsForLogistic)
 
-                # Select the suitable Log phase id
-                log_phase_id = logPhase_select(self.__wp6_outputsForLogistic)
-                log_phase = logPhase_om[log_phase_id]
-                log_phase.op_ve_init = log_phase.op_ve
+            # Select the suitable Log phase id
+            log_phase_id = logPhase_select(self.__wp6_outputsForLogistic)
+            log_phase = logPhase_om[log_phase_id]
+            log_phase.op_ve_init = log_phase.op_ve
 
 #                """
 #                 Assessing the O&M logistic phase requested
 #                """
 
-                # Initialising the output dictionary to be passed to the O&M
-                # module
-                om_log = {'port': om_port,
-                          'requirement': {},
-                          'eq_select': {},
-                          've_select': {},
-                          'combi_select': {},
-                          'schedule': {},
-                          'cost': {},
-                          'optimal': {},
-                          'risk': {},
-                          'envir': {},
-                          'findSolution': {}
-                          }
+            # Initialising the output dictionary to be passed to the O&M
+            # module
+            om_log = {'port': om_port,
+                      'requirement': {},
+                      'eq_select': {},
+                      've_select': {},
+                      'combi_select': {},
+                      'cost': {},
+                      'optimal': {},
+                      'risk': {},
+                      'envir': {},
+                      'findSolution': {}
+                      }
 
-                # Characterizing the logistic requirements
-                om_log['requirement'] = feas_om(log_phase,
-                                                log_phase_id,
-                                                self.__wp6_outputsForLogistic,
-                                                self.__device,
-                                                self.__sub_device,
-                                                self.__collection_point,
-                                                self.__connectors,
-                                                self.__dynamic_cable,
-                                                self.__static_cable)
+            # Characterizing the logistic requirements
+            om_log['requirement'] = feas_om(log_phase,
+                                            log_phase_id,
+                                            self.__wp6_outputsForLogistic,
+                                            self.__device,
+                                            self.__sub_device,
+                                            self.__collection_point,
+                                            self.__connectors,
+                                            self.__dynamic_cable,
+                                            self.__static_cable)
 
-                # Selecting the maritime infrastructure satisfying the logistic requirements
-                om_log['eq_select'], log_phase = select_e(om_log, log_phase)
-                om_log['ve_select'], log_phase = select_v(om_log, log_phase)
+            # Selecting the maritime infrastructure satisfying the logistic requirements
+            om_log['eq_select'], log_phase = select_e(om_log, log_phase)
+            om_log['ve_select'], log_phase = select_v(om_log, log_phase)
 
-                # Matching requirements to ensure compatiblity of combinations of
-                # port/vessel(s)/equipment leading to feasible logistic solutions
-                port = om_port['Selected base port for installation']
+            # Matching requirements to ensure compatiblity of combinations of
+            # port/vessel(s)/equipment leading to feasible logistic solutions
+            port = om_port['Selected base port for installation']
 
-                (om_log['combi_select'],
-                 log_phase,
-                 MATCH_FLAG) = compatibility_ve(om_log,
-                                                log_phase,
-                                                port)
+            (om_log['combi_select'],
+             log_phase,
+             MATCH_FLAG) = compatibility_ve(om_log,
+                                            log_phase,
+                                            port)
 
-                stop_time_logistic = timeit.default_timer()
-                if MATCH_FLAG == 'NoSolutions':
-                    ves_req = {'deck area [m^2]':
-                                   om_log['requirement'][5]['deck area'],
-                               'deck cargo [t]':
-                                   om_log['requirement'][5]['deck cargo'],
-                               'deck loading [t/m^2]':
-                                   om_log['requirement'][5]['deck loading']
-                               }
+            stop_time_logistic = timeit.default_timer()
+            
+            if MATCH_FLAG == 'NoSolutions':
+                
+                ves_req = {'deck area [m^2]':
+                               om_log['requirement'][5]['deck area'],
+                           'deck cargo [t]':
+                               om_log['requirement'][5]['deck cargo'],
+                           'deck loading [t/m^2]':
+                               om_log['requirement'][5]['deck loading']
+                           }
+                    
+                msg = ('No vessel solutions found. Requirements: '
+                       '{}').format(ves_req)
+                module_logger.warning(msg)
 
-                    indexNoSolutionsFound.append([iCnt,
-                                                  ves_req,
-                                                  sp_dry_mass,
-                                                  sp_length,
-                                                  sp_width,
-                                                  sp_height])
+                indexNoSolutionsFound.append([iCnt,
+                                              ves_req,
+                                              sp_dry_mass,
+                                              sp_length,
+                                              sp_width,
+                                              sp_height])
 
-                    if self.__dtocean_maintenance_PRINT_FLAG == True:
-                        print 'WP6: loop = ', loop
-                        print 'WP6: ComponentID = ', ComponentID
-                        print 'WP6: RA_ID = ', RA_ID
-                        print 'WP6: FM_ID = ', FM_ID
-                        print 'WP6: values = ', values
-                        print 'NoSolution'
-                        print 'calcLogistic: Simulation Duration [s]: ' + \
-                                str(stop_time_logistic - start_time_logistic)
-                        print ''
-                        print ''
+                if self.__dtocean_maintenance_PRINT_FLAG == True:
+                    print 'WP6: loop = ', loop
+                    print 'WP6: ComponentID = ', ComponentID
+                    print 'WP6: RA_ID = ', RA_ID
+                    print 'WP6: FM_ID = ', FM_ID
+                    print 'WP6: values = ', values
+                    print 'NoSolution'
+                    print 'calcLogistic: Simulation Duration [s]: ' + \
+                            str(stop_time_logistic - start_time_logistic)
+                    print ''
+                    print ''
 #                '''else:
 #                    if self.__dtocean_maintenance_PRINT_FLAG == True:
 #                        print 'WP6: loop = ', loop
@@ -2320,49 +2204,49 @@ class LCOE_Calculator(object):
 #                        print ''
 #                        print '''''
 
-                loop = loop + 1
+            loop = loop + 1
 
-            if len(indexNoSolutionsFound) != 0:
+        if len(indexNoSolutionsFound) != 0:
 
-                self.__errorFlag = True
+            self.__errorFlag = True
 
-                for iCnt in range(0,len(indexNoSolutionsFound)):
+            for iCnt in range(0,len(indexNoSolutionsFound)):
 
-                    index = indexNoSolutionsFound[iCnt][0]
-                    ComponentType = \
-                        self.__eventsTableNoPoisson.ComponentType[index]
-                    ComponentSubType = \
-                        self.__eventsTableNoPoisson.ComponentSubType[index]
-                    ComponentID = \
-                        self.__eventsTableNoPoisson.ComponentID[index]
-                    RA_ID = self.__eventsTableNoPoisson.RA_ID[index]
-                    FM_ID = self.__eventsTableNoPoisson.FM_ID[index]
-                    deck_area = \
-                        indexNoSolutionsFound[iCnt][1]['deck area [m^2]']
-                    deck_cargo = \
-                        indexNoSolutionsFound[iCnt][1]['deck cargo [t]']
-                    deck_loading = \
-                        indexNoSolutionsFound[iCnt][1]['deck loading [t/m^2]']
-                    sp_dry_mass = indexNoSolutionsFound[iCnt][2]
-                    sp_length = indexNoSolutionsFound[iCnt][3]
-                    sp_width = indexNoSolutionsFound[iCnt][4]
-                    sp_height = indexNoSolutionsFound[iCnt][5]
+                index = indexNoSolutionsFound[iCnt][0]
+                ComponentType = \
+                    self.__eventsTableNoPoisson.ComponentType[index]
+                ComponentSubType = \
+                    self.__eventsTableNoPoisson.ComponentSubType[index]
+                ComponentID = \
+                    self.__eventsTableNoPoisson.ComponentID[index]
+                RA_ID = self.__eventsTableNoPoisson.RA_ID[index]
+                FM_ID = self.__eventsTableNoPoisson.FM_ID[index]
+                deck_area = \
+                    indexNoSolutionsFound[iCnt][1]['deck area [m^2]']
+                deck_cargo = \
+                    indexNoSolutionsFound[iCnt][1]['deck cargo [t]']
+                deck_loading = \
+                    indexNoSolutionsFound[iCnt][1]['deck loading [t/m^2]']
+                sp_dry_mass = indexNoSolutionsFound[iCnt][2]
+                sp_length = indexNoSolutionsFound[iCnt][3]
+                sp_width = indexNoSolutionsFound[iCnt][4]
+                sp_height = indexNoSolutionsFound[iCnt][5]
 
-                    values = ['NoSolutionsFound',
-                              ComponentID,
-                              ComponentType,
-                              ComponentSubType,
-                              FM_ID,
-                              RA_ID,
-                              deck_area,
-                              deck_cargo,
-                              deck_loading,
-                              sp_dry_mass,
-                              sp_length,
-                              sp_width,
-                              sp_height]
+                values = ['NoSolutionsFound',
+                          ComponentID,
+                          ComponentType,
+                          ComponentSubType,
+                          FM_ID,
+                          RA_ID,
+                          deck_area,
+                          deck_cargo,
+                          deck_loading,
+                          sp_dry_mass,
+                          sp_length,
+                          sp_width,
+                          sp_height]
 
-                    self.__errorTable.ix[iCnt] = values
+                self.__errorTable.ix[iCnt] = values
 
         return
 
@@ -2426,9 +2310,10 @@ class LCOE_Calculator(object):
             # *****************************************************************
             if (self.__Farm_OM['condition_based_maintenance'] == True and
                 flagCalcCoBaMa == True):
-
+                
                 # break condition
-                if len(self.__CoBaMa_eventsTable) <= self.__actIdxOfCoBaMa:
+                if (len(self.__CoBaMa_eventsTable) <= self.__actIdxOfCoBaMa or
+                    pd.isnull(self.__CoBaMa_eventsTable).all().all()):
                     flagCalcCoBaMa = False
                     continue
 
@@ -2436,7 +2321,8 @@ class LCOE_Calculator(object):
                  loopValuesForOutput_CoBaMa,
                  flagCalcCoBaMa) = self.__get_lcoe_condition(
                                                    loop,
-                                                   loopValuesForOutput_CoBaMa)
+                                                   loopValuesForOutput_CoBaMa,
+                                                   flagCalcCoBaMa)
 
             # calandar based maintenance
             # *****************************************************************
@@ -2450,7 +2336,10 @@ class LCOE_Calculator(object):
                  flagCalcCaBaMa,
                  flagCalcUnCoMa) = self.__get_lcoe_calendar(
                                                    loop,
-                                                   loopValuesForOutput_CaBaMa)
+                                                   loopValuesForOutput_CaBaMa,
+                                                   flagCalcCoBaMa,
+                                                   flagCalcCaBaMa,
+                                                   flagCalcUnCoMa)
 
                 if self.__actIdxOfCaBaMa == len(self.__CaBaMa_eventsTable):
 
@@ -2489,7 +2378,9 @@ class LCOE_Calculator(object):
 
         return
 
-    def __get_lcoe_condition(self, loop, loopValuesForOutput_CoBaMa):
+    def __get_lcoe_condition(self, loop,
+                                   loopValuesForOutput_CoBaMa,
+                                   flagCalcCoBaMa):
 
         start_time_CoBaMa = timeit.default_timer()
 
@@ -2510,22 +2401,30 @@ class LCOE_Calculator(object):
         indexFM = self.__CoBaMa_eventsTable.indexFM[idx]
         CompIDWithIndex = ComponentID + '_' + str(indexFM)
         currentAlarmDateStr = currentAlarmDate.strftime(self.__strFormat1)
-        failureDate = currentAlarmDate
-        nowindow = self.__arrayDict[ComponentID]['CoBaMaNoWeatherWindow']
-
-        self.__repairActionDate = datetime.datetime.strptime(
+        failureDate = currentEndDate.strftime(self.__strFormat1)
+        
+        try:
+            self.__repairActionDate = datetime.datetime.strptime(
+                                                        str(currentAlarmDate),
+                                                        self.__strFormat3)
+        except ValueError:
+            self.__repairActionDate = datetime.datetime.strptime(
                                                         str(currentAlarmDate),
                                                         self.__strFormat2)
 
         # break condition
-        '''if self.__endOperationDate <= currentAlarmDate:
+        module_logger.debug((self.__endOperationDate, type(self.__endOperationDate)))
+        module_logger.debug((currentAlarmDate, type(currentAlarmDate)))
+        module_logger.debug(self.__endOperationDate <= currentAlarmDate)
+                
+        if self.__endOperationDate <= currentAlarmDate:
             flagCalcCoBaMa = False
-            continue'''
+            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
 
         # simulate or not
         simulateFlag = True
 
-        if self.__NrOfDevices == self.__NrOfTurnOutDevices:
+        if self.__NrOfDevices == self.__NrOfTurnOffDevices:
 
             simulateFlag = False
 
@@ -2534,12 +2433,13 @@ class LCOE_Calculator(object):
           # Set the simulateFlag?
             if belongsTo == 'Array':
 
-                if nowindow:
+                if self.__arrayDict[ComponentID]['CoBaMaNoWeatherWindow']:
                     simulateFlag = False
 
             else:
 
-                if 'device' in ComponentType and nowindow:
+                if ('device' in ComponentType and
+                    self.__arrayDict[ComponentType]['CoBaMaNoWeatherWindow']):
                     simulateFlag = False
 
         if simulateFlag == False:
@@ -2562,10 +2462,13 @@ class LCOE_Calculator(object):
 
         # Calculate the cost of operation at alarm date
         # independent from inspection or repair action
-        sp_dry_mass = self.__Failure_Mode[CompIDWithIndex]['spare_mass']
-        sp_length   = self.__Failure_Mode[CompIDWithIndex]['spare_length']
-        sp_width    = self.__Failure_Mode[CompIDWithIndex]['spare_width']
-        sp_height   = self.__Failure_Mode[CompIDWithIndex]['spare_height']
+        failure_mode = self.__Failure_Mode[CompIDWithIndex]
+        failure_mode = failure_mode.apply(pd.to_numeric, errors="ignore")
+        
+        sp_dry_mass = failure_mode['spare_mass']
+        sp_length   = failure_mode['spare_length']
+        sp_width    = failure_mode['spare_width']
+        sp_height   = failure_mode['spare_height']
 
         if 'Insp' in FM_ID:
             series = self.__Inspection[CompIDWithIndex]
@@ -2573,10 +2476,16 @@ class LCOE_Calculator(object):
         else:
             series = self.__Repair_Action[CompIDWithIndex]
             action = 'repair'
-
+            
+        series = series.apply(pd.to_numeric, errors="ignore")
+        
+        if 'Insp' in FM_ID:
+            d_om = series['duration_inspection']
+        else:
+            d_om = series['duration_maintenance']
+        
         # for logistic
         d_acc = series['duration_accessibility']
-        d_om = series['duration_maintenance']
         helideck = self.__Farm_OM['helideck']
         Hs_acc = series['wave_height_max_acc']
         Tp_acc = series['wave_periode_max_acc']
@@ -2586,8 +2495,8 @@ class LCOE_Calculator(object):
         Tp_om = series['wave_periode_max_om']
         Ws_om = series['wind_speed_max_om']
         Cs_om = series['current_speed_max_om']
-        technician = series['number_technicians'] + \
-                                                series['number_specialists']
+        technician = int(series['number_technicians']) + \
+                                            int(series['number_specialists'])
 
         Dist_port = self.__portDistIndex[action][0]
         Port_Index = self.__portDistIndex[action][1]
@@ -2616,7 +2525,7 @@ class LCOE_Calculator(object):
 
             elif 'Export Cable' in ComponentType:
                 ComponentTypeLogistic = 'static cable'
-                ComponentIDLogistic   = int(ComponentID[-3:len(ComponentID)])
+                ComponentIDLogistic   = ComponentID
 
             else:
                 ComponentTypeLogistic = ComponentType
@@ -2628,12 +2537,11 @@ class LCOE_Calculator(object):
             # The name of subsystems in logistic and RAM are differnt
             if 'Dynamic cable' in ComponentSubType:
                 ComponentTypeLogistic = 'dynamic cable'
-                # problem with logistic database
-                ComponentIDLogistic   = 0#int(ComponentID[-3:len(ComponentID)])
+                ComponentIDLogistic   = ComponentID
 
             elif 'Mooring line' in ComponentSubType:
                 ComponentTypeLogistic = 'mooring line'
-                ComponentIDLogistic   = int(ComponentID[-3:len(ComponentID)])
+                ComponentIDLogistic   = ComponentID
 
             elif 'Foundation' in ComponentSubType:
                 ComponentTypeLogistic = 'foundation'
@@ -2751,7 +2659,6 @@ class LCOE_Calculator(object):
                                                  optimal['end_dt'].hour,
                                                  optimal['end_dt'].minute)
 
-
             # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
             if type(optimal['depart_dt']) == dict:
                 dummy__departOpDate = optimal['depart_dt'][
@@ -2778,8 +2685,11 @@ class LCOE_Calculator(object):
 
             self.__totalSeaTimeHour = optimal['schedule sea time']
 
-            downsecs = (self.__endOpDate - currentAlarmDate).total_seconds()
+            downsecs = (self.__endOpDate - currentEndDate).total_seconds()
             totalDownTimeHours = downsecs // 3600
+            
+            # Avoid negative downtime
+            if totalDownTimeHours < 0: totalDownTimeHours = 0
 
             (omCostValueSpare,
              omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
@@ -3009,31 +2919,30 @@ class LCOE_Calculator(object):
             # Save the information about failure and down time in devices
             downtimeDeviceList = []
             keys = self.__arrayDict.keys()
+            breakdown = self.__arrayDict[ComponentID]['Breakdown']
 
             for iCnt1 in range(0,len(keys)):
 
-                nowindow = self.__arrayDict[keys[iCnt1]][
-                                                    'CoBaMaNoWeatherWindow']
-
-                if not (not nowindow and
-                        'device' in keys[iCnt1] and
+                if not ('device' in keys[iCnt1] and
                         ('All' in breakdown or keys[iCnt1] in breakdown)):
 
                     continue
+                
+                if self.__arrayDict[keys[iCnt1]]['CoBaMaNoWeatherWindow']:
+                    
+                    continue
 
-                if (self.__om_logistic['findSolution'] ==
-                                            'NoWeatherWindowFound' and
-                    self.__ignoreWeatherWindow == False):
+                if self.__ignoreWeatherWindow:
 
                     self.__arrayDict[keys[iCnt1]][
                                             'CoBaMaNoWeatherWindow'] = True
-                    self.__NrOfTurnOutDevices = self.__NrOfTurnOutDevices + 1
+                    self.__NrOfTurnOffDevices = self.__NrOfTurnOffDevices + 1
 
                 downtimeDeviceList.append(str(keys[iCnt1]))
 
                 # Save the information about failure
                 self.__arrayDict[keys[iCnt1]][
-                        'CoBaMaOpEvents'].append(failureDate)
+                        'CoBaMaOpEvents'].append(currentAlarmDate)
                 self.__arrayDict[keys[iCnt1]][
                         'CoBaMaOpEventsDuration'].append(totalDownTimeHours)
                 self.__arrayDict[keys[iCnt1]][
@@ -3050,10 +2959,14 @@ class LCOE_Calculator(object):
         if (CaBaMaSolution == False or
             (flagCaBaMa == False and
                  self.__Farm_OM['calendar_based_maintenance'] == True)):
-
-            alarmstr = str(datetime.datetime.strptime(str(currentAlarmDate),
-                                                      self.__strFormat2))
-
+            
+            try:
+                alarmstr = datetime.datetime.strptime(str(currentAlarmDate),
+                                                      self.__strFormat3)
+            except ValueError:
+                alarmstr = datetime.datetime.strptime(str(currentAlarmDate),
+                                                      self.__strFormat2)
+            
             valuesForOutput = [failureRate,
                                alarmstr,
                                alarmstr,
@@ -3083,7 +2996,7 @@ class LCOE_Calculator(object):
 
                 # for environmental team
                 self.__env_assess(loop,
-                                  failureDate,
+                                  currentAlarmDate,
                                   FM_ID,
                                   RA_ID,
                                   optimal['schedule sea time'],
@@ -3105,45 +3018,41 @@ class LCOE_Calculator(object):
                         index = iCnt2
                         break
 
-                if index == -1:
+                if index >= 0:
 
-                    errStr = "index is -1, which is also bad"
-                    raise RuntimeError(errStr)
-
-                lidx = len(self.__CoBaMa_eventsTable)
-                pidx = lidx - 1
-
-                current = self.__CoBaMa_eventsTable.iloc[
-                                                self.__actIdxOfCoBaMa, :]
-
-                # new line for the extension of CoBaMa
-                self.__CoBaMa_eventsTable.ix[lidx] = copy.deepcopy(current)
-
-                newLineCurrentEndDate = series[index]
-
-                secs = (newLineCurrentEndDate -
-                                newLineCurrentStartDate).total_seconds()
-                hours = secs / 3600
-                shift = hours * (1.0 - threshold)
-
-                newLineCurrentAlarmDate = newLineCurrentStartDate + \
-                                                    timedelta(hours=shift)
-
-                self.__CoBaMa_eventsTable.loc[pidx, 'currentStartDate'] = \
-                                                newLineCurrentStartDate
-                self.__CoBaMa_eventsTable.loc[pidx, 'currentEndDate'] = \
-                                                newLineCurrentEndDate
-                self.__CoBaMa_eventsTable.loc[pidx, 'currentAlarmDate'] = \
-                                                newLineCurrentAlarmDate
-
-
-                # sort of CoBaMa_eventsTable
-                self.__CoBaMa_eventsTable.sort(columns=['currentAlarmDate'],
-                                               inplace=True)
-
-                # start index with 0
-                self.__CoBaMa_eventsTable.reset_index(drop=True,
-                                                      inplace=True)
+                    lidx = len(self.__CoBaMa_eventsTable)    
+                    current = self.__CoBaMa_eventsTable.iloc[
+                                                    self.__actIdxOfCoBaMa, :]
+    
+                    # new line for the extension of CoBaMa
+                    self.__CoBaMa_eventsTable.ix[lidx] = copy.deepcopy(current)
+    
+                    newLineCurrentEndDate = series[index]
+    
+                    secs = (newLineCurrentEndDate -
+                                    newLineCurrentStartDate).total_seconds()
+                    hours = secs / 3600
+                    shift = hours * (1.0 - threshold)
+    
+                    newLineCurrentAlarmDate = newLineCurrentStartDate + \
+                                                        timedelta(hours=shift)
+    
+                    self.__CoBaMa_eventsTable.loc[lidx, 'currentStartDate'] = \
+                                                    newLineCurrentStartDate
+                    self.__CoBaMa_eventsTable.loc[lidx, 'currentEndDate'] = \
+                                                    newLineCurrentEndDate
+                    self.__CoBaMa_eventsTable.loc[lidx, 'currentAlarmDate'] = \
+                                                    newLineCurrentAlarmDate
+    
+    
+                    # sort of CoBaMa_eventsTable
+                    self.__CoBaMa_eventsTable.sort(
+                                                columns=['currentAlarmDate'],
+                                                inplace=True)
+    
+                    # start index with 0
+                    self.__CoBaMa_eventsTable.reset_index(drop=True,
+                                                          inplace=True)
 
         # increase the index
         self.__actIdxOfCoBaMa = self.__actIdxOfCoBaMa + 1
@@ -3237,7 +3146,11 @@ class LCOE_Calculator(object):
 
         return CaBaMaSolution, dummyCaBaMaEndDate
 
-    def __get_lcoe_calendar(self, loop, loopValuesForOutput_CaBaMa):
+    def __get_lcoe_calendar(self, loop,
+                                  loopValuesForOutput_CaBaMa,
+                                  flagCalcCoBaMa,
+                                  flagCalcCaBaMa,
+                                  flagCalcUnCoMa):
 
         start_time_CaBaMa = timeit.default_timer()
 
@@ -3251,7 +3164,6 @@ class LCOE_Calculator(object):
         indexFM          = self.__CaBaMa_eventsTable.indexFM[idx]
         RA_ID            = str(self.__CaBaMa_eventsTable.RA_ID[idx])
         ComponentID      = str(self.__CaBaMa_eventsTable.ComponentID[idx])
-        shortid          = int(ComponentID[-3:len(ComponentID)])
 
         # find the blocks in CaBaMa
         if 'device' in ComponentType:
@@ -3285,6 +3197,17 @@ class LCOE_Calculator(object):
                                                  startActionDate) & \
                 (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
                 (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+          
+        # Exit if no actions are required.
+        if dummyCaBaMaTable.empty:
+            
+            flagCalcCaBaMa = False
+            
+            return (loop,
+                    loopValuesForOutput_CaBaMa,
+                    flagCalcCoBaMa,
+                    flagCalcCaBaMa,
+                    flagCalcUnCoMa)
 
         # start index with 0
         dummyCaBaMaTable.reset_index(drop=True, inplace=True)
@@ -3293,9 +3216,9 @@ class LCOE_Calculator(object):
         divModBlockNumber = divmod(len(dummyCaBaMaTable),
                                    self.__CaBaMa_nrOfMaxActions)
 
-        if 0 < divModBlockNumber[0]:
+        if divModBlockNumber[0] > 0:
 
-            for iCnt in range(0,divModBlockNumber[0]):
+            for iCnt in range(0, divModBlockNumber[0]):
 
                 blockNumberList.append(self.__CaBaMa_nrOfMaxActions)
 
@@ -3305,7 +3228,7 @@ class LCOE_Calculator(object):
         else:
 
             blockNumberList.append(divModBlockNumber[1])
-
+            
         for iCnt in range(0, len(blockNumberList)):
 
             bidx = iCnt * self.__CaBaMa_nrOfMaxActions
@@ -3316,10 +3239,9 @@ class LCOE_Calculator(object):
 
             actiondt = datetime.datetime.strptime(str(currentStartActionDate),
                                                   self.__strFormat2)
-            currentStartActionDateFormat2 = actiondt
 
             # Date of logistic request
-            self.__repairActionDate = currentStartActionDateFormat2
+            self.__repairActionDate = actiondt
             repairActionDateStr = currentStartActionDate.strftime(
                                                             self.__strFormat1)
 
@@ -3351,14 +3273,14 @@ class LCOE_Calculator(object):
             # loop over blockNumber
             for iCnt1 in range(0, blockNumber):
 
-                bidx1 = bidx + iCnt1
+                aindx = bidx + iCnt1
 
-                belongsTo = dummyCaBaMaTable.belongsTo[bidx1]
-                ComponentID = dummyCaBaMaTable.ComponentID[bidx1]
+                belongsTo = dummyCaBaMaTable.belongsTo[aindx]
+                ComponentID = dummyCaBaMaTable.ComponentID[aindx]
                 CompIDWithIndex = ComponentID + '_' + str(indexFM)
 
-                ComponentType = dummyCaBaMaTable.ComponentType[bidx1]
-                ComponentSubType = dummyCaBaMaTable.ComponentSubType[bidx1]
+                ComponentType = dummyCaBaMaTable.ComponentType[aindx]
+                ComponentSubType = dummyCaBaMaTable.ComponentSubType[aindx]
 
                 ComponentTypeList.append(ComponentType)
                 ComponentSubTypeList.append(ComponentSubType)
@@ -3367,6 +3289,7 @@ class LCOE_Calculator(object):
                 if iCnt == 0:
 
                     failure = self.__Failure_Mode[CompIDWithIndex]
+                    failure = failure.apply(pd.to_numeric, errors="ignore")
 
                     # independent from inspection or repair action
                     sp_dry_mass = failure['spare_mass']
@@ -3377,6 +3300,8 @@ class LCOE_Calculator(object):
                     if 'Insp' in FM_ID:
 
                         inspection = self.__Inspection[CompIDWithIndex]
+                        inspection = inspection.apply(pd.to_numeric,
+                                                      errors="ignore")
 
                         # For logistic
                         d_acc = inspection['duration_accessibility']
@@ -3390,8 +3315,8 @@ class LCOE_Calculator(object):
                         Tp_om = inspection['wave_periode_max_om']
                         Ws_om = inspection['wind_speed_max_om']
                         Cs_om = inspection['current_speed_max_om']
-                        technician = inspection['number_technicians'] + \
-                                            inspection['number_specialists']
+                        technician = int(inspection['number_technicians']) + \
+                                        int(inspection['number_specialists'])
 
                         Dist_port = self.__portDistIndex['inspection'][0]
                         Port_Index = self.__portDistIndex['inspection'][1]
@@ -3399,6 +3324,7 @@ class LCOE_Calculator(object):
                     else:
 
                         repair = self.__Repair_Action[CompIDWithIndex]
+                        repair = repair.apply(pd.to_numeric, errors="ignore")
 
                         # for logistic
                         d_acc = repair['duration_accessibility']
@@ -3412,8 +3338,8 @@ class LCOE_Calculator(object):
                         Tp_om = repair['wave_periode_max_om']
                         Ws_om = repair['wind_speed_max_om']
                         Cs_om = repair['current_speed_max_om']
-                        technician = repair['number_technicians'] + \
-                                                repair['number_specialists']
+                        technician = int(repair['number_technicians']) + \
+                                            int(repair['number_specialists'])
 
                         Dist_port = self.__portDistIndex['repair'][0]
                         Port_Index = self.__portDistIndex['repair'][1]
@@ -3434,7 +3360,7 @@ class LCOE_Calculator(object):
                         elif 'Export Cable' in ComponentType:
 
                             ComponentTypeLogistic = 'static cable'
-                            ComponentIDLogistic = shortid
+                            ComponentIDLogistic = ComponentID
 
                         else:
 
@@ -3448,12 +3374,11 @@ class LCOE_Calculator(object):
                         # differnt
                         if 'Dynamic cable' in ComponentSubType:
                             ComponentTypeLogistic = 'dynamic cable'
-                            # problem with logistic database
-                            ComponentIDLogistic = 0 #shortid
+                            ComponentIDLogistic = ComponentID
 
                         elif 'Mooring line' in ComponentSubType:
                             ComponentTypeLogistic = 'mooring line'
-                            ComponentIDLogistic = shortid
+                            ComponentIDLogistic = ComponentID
 
                         elif 'Foundation' in ComponentSubType:
                             ComponentTypeLogistic = 'foundation'
@@ -3554,7 +3479,10 @@ class LCOE_Calculator(object):
                 optLogisticCostValue = 0
                 omCostValue = 0
                 totalDownTimeHours = 0
+                operation_action_date = currentStartActionDate
                 self.__endOpDate = currentStartActionDate
+                
+                raise RuntimeError(self.__om_logistic['findSolution'])
 
             else:
 
@@ -3592,46 +3520,53 @@ class LCOE_Calculator(object):
 #                optimal['schedule sea time'] = self.__totalSeaTimeHour
 
                 self.__totalSeaTimeHour = optimal['schedule sea time']
-
-                secs = (self.__endOpDate -
-                                currentStartActionDateFormat2).total_seconds()
-                totalDownTimeHours = secs // 3600
-
+                
+                operation_time = optimal['schedule sea operation time']
+                transit_time = optimal['schedule sea transit time']
+                
+                operation_action_date = self.__departOpDate + \
+                                        datetime.timedelta(hours=transit_time)
+                                        
+                if np.isnan(operation_time):
+                    
+                    errStr = "Operation time is NaN"
+                    raise RuntimeError(errStr)
+                
+                totalDownTimeHours = operation_time
+                
                 (omCostValueSpare,
                  omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
-
-            startdt =  datetime.datetime.strptime(str(currentStartActionDate),
-                                                  self.__strFormat2)
-            currentStartActionDateFormat2 = startdt
-            shiftDate = currentStartActionDateFormat2
 
             logisticcost = round(optLogisticCostValue / float(blockNumber), 2)
             omcost = round(omCostValue, 2)
 
-            currentStartActionDateList = []
+            currentStartActionDateList = [operation_action_date]
+            
+            tidx = self.__actIdxOfCaBaMa - blockNumber
+            self.__CaBaMa_eventsTable.loc[tidx, 'currentStartActionDate'] = \
+                                                        operation_action_date
 
-            for iCnt1 in range(0,blockNumber):
+            for iCnt1 in range(0, blockNumber):
 
-                blockshift = self.__totalSeaTimeHour / float(blockNumber)
                 tidx = self.__actIdxOfCaBaMa - blockNumber + iCnt1
 
-                shiftDate = shiftDate + timedelta(hours=blockshift)
+                operation_hours = (iCnt1 + 1) * operation_time
+                shiftDate = operation_action_date + \
+                                            timedelta(hours=operation_hours)
+                
                 self.__CaBaMa_eventsTable.loc[tidx, 'currentEndActionDate'] = \
                                                                     shiftDate
 
-                currentStartActionDateList.append(shiftDate)
-
                 if iCnt1 < blockNumber - 1:
+                    currentStartActionDateList.append(shiftDate)
                     self.__CaBaMa_eventsTable.loc[tidx + 1,
                                                   'currentStartActionDate'] = \
                                                                     shiftDate
 
-
-
                 self.__CaBaMa_eventsTable.loc[tidx,
                                               'logisticCost'] = logisticcost
                 self.__CaBaMa_eventsTable.loc[tidx, 'omCost'] = omcost
-
+            
             # Save the cost of operation
             if belongsTo == 'Array':
 
@@ -3664,8 +3599,6 @@ class LCOE_Calculator(object):
 
                 if not 'device' in keys[iCnt1]: continue
 
-                shiftDate = currentStartActionDateFormat2
-
                 for iCnt2 in range(0, blockNumber):
 
                     tidx = iCnt * self.__CaBaMa_nrOfMaxActions + iCnt2
@@ -3676,21 +3609,22 @@ class LCOE_Calculator(object):
                         continue
 
                     # Save the information about failure
-                    blockshift = self.__totalSeaTimeHour / float(blockNumber)
-                    shiftDate = shiftDate + timedelta(hours=blockshift)
-                    blockdown = totalDownTimeHours / float(blockNumber)
+                    operation_hours = iCnt1 * operation_time
+                    shiftDate = operation_action_date + \
+                                            timedelta(hours=operation_hours)
+                    
                     indexFM = dummyCaBaMaTable.indexFM[tidx]
                     causestr = str(dummyCaBaMaTable.ComponentID[tidx]) + \
                                                                    '_CaBaMa'
 
                     self.__arrayDict[keys[iCnt1]][
-                            'CaBaMaOpEvents'].append(shiftDate)
+                        'CaBaMaOpEvents'].append(shiftDate)
                     self.__arrayDict[keys[iCnt1]][
-                            'CaBaMaOpEventsDuration'].append(blockdown)
+                        'CaBaMaOpEventsDuration'].append(totalDownTimeHours)
                     self.__arrayDict[keys[iCnt1]][
-                            'CaBaMaOpEventsIndexFM'].append(indexFM)
+                        'CaBaMaOpEventsIndexFM'].append(indexFM)
                     self.__arrayDict[keys[iCnt1]][
-                            'CaBaMaOpEventsCausedBy'].append(causestr)
+                        'CaBaMaOpEventsCausedBy'].append(causestr)
 
                     if 'device' in ComponentType: continue
 
@@ -3702,7 +3636,7 @@ class LCOE_Calculator(object):
             # Save the information about failure and down time in devices
             downtimeDeviceList = []
 
-            for iCnt2 in range(0,blockNumber):
+            for iCnt2 in range(0, blockNumber):
 
                 tidx = iCnt * self.__CaBaMa_nrOfMaxActions + iCnt2
                 breakdown = self.__arrayDict[
@@ -3738,11 +3672,9 @@ class LCOE_Calculator(object):
 
                 for iCnt1 in range(0, blockNumber):
 
-                    blockhours = int(totalDownTimeHours / float(blockNumber))
-
                     valuesForOutput = [str(currentStartActionDate),
                                        str(currentStartActionDateList[iCnt1]),
-                                       blockhours,
+                                       totalDownTimeHours,
                                        '',
                                        str(ComponentTypeList[iCnt1]),
                                        str(ComponentSubTypeList[iCnt1]),
@@ -3803,7 +3735,7 @@ class LCOE_Calculator(object):
         # simulate or not
         simulateFlag = True
 
-        if self.__NrOfDevices == self.__NrOfTurnOutDevices:
+        if self.__NrOfDevices == self.__NrOfTurnOffDevices:
 
             simulateFlag = False
 
@@ -3837,13 +3769,22 @@ class LCOE_Calculator(object):
             repairActionEvents = \
                 self.__UnCoMa_eventsTable.repairActionEvents[idx]
 
-        # failureEvents
-        failureDate = datetime.datetime.strptime(str(failureEvents),
-                                                 self.__strFormat2)
+        # failureEvents        
+        try:
+            failureDate = datetime.datetime.strptime(str(failureEvents),
+                                                     self.__strFormat3)
+        except ValueError:
+            failureDate = datetime.datetime.strptime(str(failureEvents),
+                                                     self.__strFormat2)
 
         # Date of logistic request
-        repairdate = datetime.datetime.strptime(str(repairActionEvents),
-                                                self.__strFormat2)
+        try:
+            repairdate = datetime.datetime.strptime(str(repairActionEvents),
+                                                    self.__strFormat3)
+        except ValueError:
+            repairdate = datetime.datetime.strptime(str(repairActionEvents),
+                                                    self.__strFormat2)
+        
         self.__repairActionDate = repairdate
 
         repairActionDateStr = repairActionEvents.strftime(self.__strFormat1)
@@ -3946,6 +3887,7 @@ class LCOE_Calculator(object):
 
         # independent from inspection or repair action
         failure = self.__Failure_Mode[CompIDWithIndex]
+        failure = failure.apply(pd.to_numeric, errors="ignore")
 
         sp_dry_mass = failure['spare_mass']
         sp_length = failure['spare_length']
@@ -3956,6 +3898,7 @@ class LCOE_Calculator(object):
 
             # For logistic
             inspection = self.__Inspection[CompIDWithIndex]
+            inspection = inspection.apply(pd.to_numeric, errors="ignore")
 
             d_acc = inspection['duration_accessibility']
             d_om = inspection['duration_inspection']
@@ -3968,8 +3911,8 @@ class LCOE_Calculator(object):
             Tp_om = inspection['wave_periode_max_om']
             Ws_om = inspection['wind_speed_max_om']
             Cs_om = inspection['current_speed_max_om']
-            technician = inspection['number_technicians'] + \
-                                            inspection['number_specialists']
+            technician = int(inspection['number_technicians']) + \
+                                        int(inspection['number_specialists'])
 
             Dist_port = self.__portDistIndex['inspection'][0]
             Port_Index = self.__portDistIndex['inspection'][1]
@@ -3978,6 +3921,7 @@ class LCOE_Calculator(object):
 
             # for logistic
             repair = self.__Repair_Action[CompIDWithIndex]
+            repair = repair.apply(pd.to_numeric, errors="ignore")
 
             d_acc = repair['duration_accessibility']
             d_om = repair['duration_maintenance']
@@ -3990,8 +3934,8 @@ class LCOE_Calculator(object):
             Tp_om = repair['wave_periode_max_om']
             Ws_om = repair['wind_speed_max_om']
             Cs_om = repair['current_speed_max_om']
-            technician = repair['number_technicians'] + \
-                                            repair['number_specialists']
+            technician = int(repair['number_technicians']) + \
+                                            int(repair['number_specialists'])
 
             Dist_port = self.__portDistIndex['repair'][0]
             Port_Index = self.__portDistIndex['repair'][1]
@@ -4020,7 +3964,7 @@ class LCOE_Calculator(object):
 
             elif 'Export Cable' in ComponentType:
                 ComponentTypeLogistic = 'static cable'
-                ComponentIDLogistic = int(ComponentID[-3:len(ComponentID)])
+                ComponentIDLogistic = ComponentID
 
             else:
                 ComponentTypeLogistic = ComponentType
@@ -4032,12 +3976,11 @@ class LCOE_Calculator(object):
             # The name of subsystems in logistic and RAM are differnt
             if 'Dynamic cable' in ComponentSubType:
                 ComponentTypeLogistic = 'dynamic cable'
-                # problem with logistic database
-                ComponentIDLogistic = 0#int(ComponentID[-3:len(ComponentID)])
+                ComponentIDLogistic = ComponentID
 
             elif 'Mooring line' in ComponentSubType:
                 ComponentTypeLogistic = 'mooring line'
-                ComponentIDLogistic = int(ComponentID[-3:len(ComponentID)])
+                ComponentIDLogistic = ComponentID
 
             elif 'Foundation' in ComponentSubType:
                 ComponentTypeLogistic = 'foundation'
@@ -4089,7 +4032,7 @@ class LCOE_Calculator(object):
 
         # Calc logistic functions
         start_time_logistic = timeit.default_timer()
-        self.__calcLogistic()
+        self.__calcLogistic(optimise_delay=True)
         stop_time_logistic = timeit.default_timer()
 
         if self.__dtocean_maintenance_PRINT_FLAG == True:
@@ -4179,7 +4122,7 @@ class LCOE_Calculator(object):
 
             secs = (self.__endOpDate - failureDate).total_seconds()
             totalDownTimeHours = secs // 3600
-
+            
             totalWaitingTimeHours = totalDownTimeHours - \
                                                     self.__totalSeaTimeHour
 
@@ -4208,21 +4151,24 @@ class LCOE_Calculator(object):
         downtimeDeviceList = []
         keys = self.__arrayDict.keys()
         breakdown = self.__arrayDict[ComponentID]['Breakdown']
-
-        for iCnt1 in range(0,len(keys)):
+        
+        for iCnt1 in range(0, len(keys)):
 
             if not ('device' in keys[iCnt1] and
-                    self.__arrayDict[keys[iCnt1]]['UnCoMaNoWeatherWindow'] and
                     ('All' in breakdown or keys[iCnt1] in breakdown)):
-
+                
+                continue
+            
+            if self.__arrayDict[keys[iCnt1]]['UnCoMaNoWeatherWindow']:
+                
                 continue
 
             if self.__ignoreWeatherWindow:
                 self.__arrayDict[keys[iCnt1]]['UnCoMaNoWeatherWindow'] = True
-                self.__NrOfTurnOutDevices = self.__NrOfTurnOutDevices + 1
+                self.__NrOfTurnOffDevices = self.__NrOfTurnOffDevices + 1
 
             downtimeDeviceList.append(str(keys[iCnt1]))
-
+            
             # Save the information about failure
             self.__arrayDict[keys[iCnt1]][
                     'UnCoMaOpEvents'].append(failureDate)
@@ -4238,9 +4184,6 @@ class LCOE_Calculator(object):
             self.__arrayDict[keys[iCnt1]]['UnCoMaCostLogistic'].append(0.0)
             self.__arrayDict[keys[iCnt1]]['UnCoMaCostOM'].append(0.0)
             self.__arrayDict[ComponentID]['UnCoMaNoWeatherWindow'] = True
-
-        # loopValuesForOutput
-        loopValuesForOutput_UnCoMa = loopValuesForOutput_UnCoMa + 1
 
         # Update poisson events in eventTables
         self.__updatePoissonEvents()
@@ -4276,10 +4219,14 @@ class LCOE_Calculator(object):
 
         self.__UnCoMa_outputEventsTable.ix[loopValuesForOutput_UnCoMa] = \
                                                             valuesForOutput
-        self.__UnCoMa_outputEventsTable.loc[loopValuesForOutput_UnCoMa,
-                                            'downtimeDeviceList [-]'] = \
-                                                            downtimeDeviceList
-
+        
+        self.__UnCoMa_outputEventsTable.set_value(loopValuesForOutput_UnCoMa,
+                                                  'downtimeDeviceList [-]',
+                                                  downtimeDeviceList)
+                                                            
+        # loopValuesForOutput
+        loopValuesForOutput_UnCoMa = loopValuesForOutput_UnCoMa + 1
+        
         # loop
         loop = loop + 1
 
@@ -4297,7 +4244,7 @@ class LCOE_Calculator(object):
                 flagCalcCoBaMa,
                 flagCalcUnCoMa)
 
-    def __calcLogistic(self):
+    def __calcLogistic(self, optimise_delay=False):
 
         '''__calcLogistic function: calls of dtocean-logistics and saves the
         results
@@ -4324,7 +4271,8 @@ class LCOE_Calculator(object):
                                            self.__static_cable,
                                            self.__connectors,
                                            self.__wp6_outputsForLogistic,
-                                           self.__dtocean_logistics_PRINT_FLAG)
+                                           self.__dtocean_logistics_PRINT_FLAG,
+                                           optimise_delay)
 
         return
 
@@ -4458,31 +4406,36 @@ class LCOE_Calculator(object):
             dayWeekend = 0.0
 
         if 'Insp' in FM_ID:
+            
+            inspection = self.__Inspection[CompIDWithIndex]
+            inspection = inspection.apply(pd.to_numeric, errors="ignore")
 
-            number_technicians = self.__Inspection[CompIDWithIndex][
-                                                        'number_technicians']
-            number_specialists = self.__Inspection[CompIDWithIndex][
-                                                        'number_specialists']
+            number_technicians = inspection['number_technicians']
+            number_specialists = inspection['number_specialists']
 
         else:
+            
+            repair_action = self.__Repair_Action[CompIDWithIndex]
+            repair_action = repair_action.apply(pd.to_numeric, errors="ignore")
 
-            number_technicians = self.__Repair_Action[CompIDWithIndex][
-                                                        'number_technicians']
-            number_specialists = self.__Repair_Action[CompIDWithIndex][
-                                                        'number_specialists']
+            number_technicians = repair_action['number_technicians']
+            number_specialists = repair_action['number_specialists']
 
         wage_specialist_day = self.__Farm_OM['wage_specialist_day']
         wage_specialist_night = self.__Farm_OM['wage_specialist_night']
         wage_technician_day = self.__Farm_OM['wage_technician_day']
         wage_technician_night = self.__Farm_OM['wage_technician_night']
+        
+        failure_mode = self.__Failure_Mode[CompIDWithIndex]
+        failure_mode = failure_mode.apply(pd.to_numeric, errors="ignore")
 
         # cost of OM for the current action [unit]
-        cost_spare = self.__Failure_Mode[CompIDWithIndex][
-                                                        'cost_spare']
-        cost_spare_transit = self.__Failure_Mode[CompIDWithIndex][
-                                                        'cost_spare_transit']
-        cost_spare_loading = self.__Failure_Mode[CompIDWithIndex][
-                                                        'cost_spare_loading']
+        cost_spare = failure_mode['cost_spare']
+        cost_spare_transit = failure_mode['cost_spare_transit']
+        cost_spare_loading = failure_mode['cost_spare_loading']
+        
+        if np.isnan(cost_spare_transit): cost_spare_transit = 0.
+        if np.isnan(cost_spare_loading): cost_spare_loading = 0.
 
         # cost of spare
         omCostValueSpare = cost_spare + cost_spare_transit + cost_spare_loading
@@ -4787,8 +4740,7 @@ class LCOE_Calculator(object):
 
         # LCOE of array [Euro/kWh]
         if not np.isclose(arrayenergy, 0):
-            arraylcoe = arrayopex / \
-                    (self.__outputsOfWP6['annualEnergyOfArray [Wh]'] / 1000.0)
+            arraylcoe = arrayopex / arrayenergy / 1000.0
         else:
             arraylcoe = 0.0
 
