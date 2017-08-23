@@ -29,8 +29,7 @@ class Array(object):
                        systype,
                        eventsTableKeys,
                        NoPoisson_eventsTableKeys,
-                       printWP6,
-                       readFailureRateFromRAM):
+                       printWP6):
 
         '''__init__ function: Saves the arguments in internal variabels.
 
@@ -46,8 +45,6 @@ class Array(object):
                 keys of NoPoisson event table dataframe
             printWP6 (bool):
                 internal flag in order to print messages
-            readFailureRateFromRAM (bool):
-                internal flag in order to read fromRAM
 
         Attributes:
             self.__dtocean_maintenance_PRINT_FLAG (bool):
@@ -65,8 +62,6 @@ class Array(object):
                 Id of defined repair actions between logistics and maintenance
             self.__ramTableKeys (list of str): Keys of RAM table
             self.__ramTable (dataframe): RAM table
-            self.__readFailureRateFromRAM (bool):
-                internal flag in order to read from RAM
 
         '''
 
@@ -135,11 +130,7 @@ class Array(object):
         # Original RAM table
         self.__ramTable = None
         
-        # Flag read from RAM
-        # True  -> Failure rate is read from RAM
-        # False -> Failure rate is read from component table
-        self.__readFailureRateFromRAM = readFailureRateFromRAM
-        
+        return
                          
     # Failure estimation module
     def executeFEM(self, arrayDict,
@@ -218,88 +209,76 @@ class Array(object):
             arrayDict[componentID]['CoBaMa_initOpEventsList'] = []
             arrayDict[componentID]['CoBaMa_FR List'] = []
 
-            # Read failure rate
-            if self.__readFailureRateFromRAM == True:
+            if 'device' in componentType:
 
-                # failure rate will be read from component table
-                if 'device' in componentType:
+                RamTableQueryDeviceID = componentType
 
-                    RamTableQueryDeviceID = componentType
+                if (componentSubType == 'Mooring line' or
+                    componentSubType == 'Foundation'):
 
-                    if (componentSubType == 'Mooring line' or
-                        componentSubType == 'Foundation'):
+                    RamTableQuerySubSystem = \
+                                        'M&F sub-system mooring foundation'
 
-                        RamTableQuerySubSystem = \
-                                            'M&F sub-system mooring foundation'
+                elif componentSubType == 'Dynamic cable':
 
-                    elif componentSubType == 'Dynamic cable':
-
-                        RamTableQuerySubSystem = 'M&F sub-system dynamic cable'
-
-                    else:
-
-                        RamTableQuerySubSystem = componentSubType
-
-
-                elif 'subhub' in componentType:
-
-                    RamTableQueryDeviceID = componentType
+                    RamTableQuerySubSystem = 'M&F sub-system dynamic cable'
 
                 else:
 
-                    RamTableQueryDeviceID  = 'Array'
-                    RamTableQuerySubSystem = componentType[0:-3]
+                    RamTableQuerySubSystem = componentSubType
+
+            elif 'subhub' in componentType:
+
+                RamTableQueryDeviceID = componentType
+
+            else:
+
+                RamTableQueryDeviceID  = 'Array'
+                RamTableQuerySubSystem = componentType[0:-3]
+
+            if 'subhub' in componentType:
+
+                dummyRamTable = self.__ramTable.loc[
+                    (self.__ramTable['deviceID'] == RamTableQueryDeviceID)]
+
+            else:
+
+                dummyRamTable = self.__ramTable.loc[
+                    (self.__ramTable['deviceID'] == \
+                                                 RamTableQueryDeviceID) &
+                    (self.__ramTable['subSystem'] == \
+                                                 RamTableQuerySubSystem)]
+
+            if len(dummyRamTable) > 0:
+
+                dummyRamTable.reset_index(drop=True, inplace=True)
+
+                failure = dummyRamTable.failureRate
 
                 if 'subhub' in componentType:
-
-                    dummyRamTable = self.__ramTable.loc[
-                        (self.__ramTable['deviceID'] == RamTableQueryDeviceID)]
-
+                    arrayDict[componentID]['FR'] = failure[0] + failure[1]
                 else:
+                    arrayDict[componentID]['FR'] = failure[0]
 
-                    dummyRamTable = self.__ramTable.loc[
-                        (self.__ramTable['deviceID'] == \
-                                                     RamTableQueryDeviceID) &
-                        (self.__ramTable['subSystem'] == \
-                                                     RamTableQuerySubSystem)]
+                # M&F -> 50% Mooring and 50% foundation
+                if (componentSubType == 'Mooring line' or
+                    componentSubType == 'Foundation'):
 
-                if len(0 < dummyRamTable):
-
-                    dummyRamTable.reset_index(drop=True, inplace=True)
-
-                    failure = dummyRamTable.failureRate
-
-                    if 'subhub' in componentType:
-                        arrayDict[componentID]['FR'] = failure[0] + failure[1]
-                    else:
-                        arrayDict[componentID]['FR'] = failure[0]
-
-                    # M&F -> 50% Mooring and 50% foundation
-                    if (componentSubType == 'Mooring line' or
-                        componentSubType == 'Foundation' or
-                        componentSubType == 'Dynamic cable'):
-
-                        arrayDict[componentID]['FR'] *= 0.5
-
-                else:
-
-                    # failure rate will be read from component table
-                    arrayDict[componentID]['FR'] = component[componentID][
-                                                                'failure_rate']
-
-                    if self.__dtocean_maintenance_PRINT_FLAG:
-
-                        msgStr = ('WP6: The failure rate of {} can not be '
-                                  'read from dtocean-reliability. Therefore '
-                                  'the failure rate is read from component '
-                                  'table').format(componentID)
-                        print msgStr
+                    arrayDict[componentID]['FR'] *= 0.5
 
             else:
 
                 # failure rate will be read from component table
                 arrayDict[componentID]['FR'] = component[componentID][
-                                                                'failure_rate']
+                                                            'failure_rate']
+
+                if self.__dtocean_maintenance_PRINT_FLAG:
+
+                    msgStr = ('WP6: The failure rate of {} can not be '
+                              'read from dtocean-reliability. Therefore '
+                              'the failure rate is read from component '
+                              'table').format(componentID)
+                    print msgStr
 
             arrayDict[componentID]['FR List'] = []
 
