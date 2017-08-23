@@ -84,7 +84,7 @@ setup(name='dtocean-maintenance',
       packages=find_packages(),
       install_requires=[
           'dtocean-logistics==1.1.dev1',
-          'dtocean_reliability==1.1.dev0',
+          'dtocean-reliability==1.1.dev0',
           'numpy',
           'pandas'
       ],
