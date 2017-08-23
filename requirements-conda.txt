@@ -2,7 +2,7 @@
 
 # INSTALLATION REQUIRED DEPENDENCIES
 dtocean-logistics =1.1.dev1
-dtocean_reliability =1.1.dev0
+dtocean-reliability =1.1.dev0
 numpy
 pandas
 
