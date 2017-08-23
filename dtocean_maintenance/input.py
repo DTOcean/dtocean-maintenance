@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 """
 This module contains the classes used to collect and modify inputs
 
