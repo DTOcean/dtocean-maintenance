@@ -24,8 +24,9 @@ The module can be described in different core sub-modules:
     (iv) cost assessment of the logistic phase
 """
 
-from os import path
 import timeit
+import logging
+from os import path
 
 from dtocean_logistics.phases.operations import logOp_init
 from dtocean_logistics.phases.om import logPhase_om_init
@@ -38,6 +39,9 @@ from dtocean_logistics.performance.schedule.schedule_om import sched_om
 from dtocean_logistics.performance.economic.eco import cost
 from dtocean_logistics.outputs.output_processing import out_process
 from dtocean_logistics.load.safe_factors import safety_factors
+
+# Set up logging
+module_logger = logging.getLogger(__name__)
 
 
 def om_logistics_main(vessels_0,
@@ -59,7 +63,8 @@ def om_logistics_main(vessels_0,
                       static_cable,
                       connectors,
                       om,
-                      PRINT_FLAG):
+                      PRINT_FLAG,
+                      optimise_delay=False):
 
     """
     Parameters
@@ -107,8 +112,8 @@ def om_logistics_main(vessels_0,
             list of vessels satisfying the minimum requirements
         'combi_select' (dict):
             list of solutions passing the compatibility check
-        'schedule' (dict): list of parameters with data about time
         'cost'  (dict): vessel equiment and port cost
+        'optimal' (dict): list of parameters with data about time
     
     """
 
@@ -183,7 +188,6 @@ def om_logistics_main(vessels_0,
               'eq_select': {},
               've_select': {},
               'combi_select': {},
-              'schedule': {},
               'cost': {},
               'optimal': {},
               'risk': {},
@@ -222,9 +226,11 @@ def om_logistics_main(vessels_0,
                    'deck loading [t/m^2]':
                                    om_log['requirement'][5]['deck loading']}
             
+        msg = 'No vessel solutions found. Requirements: {}'.format(ves_req)
+        module_logger.warning(msg)
+            
         if PRINT_FLAG:
-            print 'There are no solutions!' + '\n' + 'requirements:'
-            print ves_req
+            print msg
             
         om_log['findSolution'] = 'NoSolutionsFound'
         
@@ -232,8 +238,7 @@ def om_logistics_main(vessels_0,
         
         # Estimating the schedule associated with all feasible logistic
         # solutions
-        (om_log['schedule'],
-         log_phase,
+        (log_phase,
          SCHEDULE_FLAG) = sched_om(log_phase,
                                    log_phase_id,
                                    site,
@@ -242,11 +247,16 @@ def om_logistics_main(vessels_0,
                                    entry_point,
                                    metocean,
                                    layout,
-                                   om)
-
+                                   om,
+                                   optimise_delay)
+        
         if SCHEDULE_FLAG == 'NoWWindows':
             
-            if PRINT_FLAG: print 'There are no weather windows!'
+            msg = 'No weather windows found'
+            module_logger.warning(msg)
+            
+            if PRINT_FLAG: print msg
+            
             om_log['findSolution'] = 'NoWeatherWindowFound'
             
         else:
