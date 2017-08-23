@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""This module contains the installation code of WP6 package.
+"""This module contains the installation code of dtocean-maintenance
 
 .. module:: setup.py
    :platform: Windows
-   :synopsis: installation code of WP6 package
+   :synopsis: installation code of dtocean-maintenance
    
 .. moduleauthor:: Mathew Topper <mathew.topper@tecnalia.com>
 """
@@ -14,6 +14,7 @@ import sys
 from distutils.cmd import Command
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
+
 
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
@@ -32,7 +33,8 @@ class PyTest(TestCommand):
         import pytest
         errno = pytest.main(self.pytest_args)
         sys.exit(errno)
-        
+
+
 class CleanPyc(Command):
 
     description = 'clean *.pyc'
@@ -72,7 +74,7 @@ class CleanPyc(Command):
 
 
 setup(name='dtocean-maintenance',
-      version='1.0.0',
+      version='1.1.dev0',
       description='The maintenance operations module for the DTOcean tools',
       author=('Bahram Panahandeh, '
               'Mathew Topper'),
@@ -81,20 +83,11 @@ setup(name='dtocean-maintenance',
       license="GPLv3",
       packages=find_packages(),
       install_requires=[
-          'dtocean-logistics>=1.0',
+          'dtocean-logistics==1.1.dev1',
           'numpy',
           'pandas'
       ],
-      entry_points={
-          'console_scripts':
-              [
-               'WP6-demo=dtocean_maintenance.command:test',
-               ]},
-      package_data={'dtocean_maintenance': ['databases/*.xlsx',
-                                            'databases/*.csv',
-                                            'databases/*.txt']
-                    },
-      zip_safe=False,
+      zip_safe=False, # Important for reading config files
       tests_require=['pytest'],
       cmdclass = {'test': PyTest,
                   'cleanpyc': CleanPyc,
