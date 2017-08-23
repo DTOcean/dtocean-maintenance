@@ -288,10 +288,10 @@ class Array(object):
                               'Support structure',
                               'Mooring line',
                               'Foundation',
-                              'Dynamic cable'
+                              'Dynamic cable',
                               'Array elec sub-system']
-
-            if componentID in device_systems:
+            
+            if componentSubType in device_systems:
 
                 deviceID = component[column]['Component_type']
                 logic = deviceID in arrayDict.keys()
@@ -471,7 +471,7 @@ class Array(object):
                 RA_IDListNoPoisson.append(
                         self.__FM_ID_RA_ID[failureMode[strDummy]['FM_ID']])
 
-                if componentID in device_systems:
+                if componentSubType in device_systems:
                     belongsToListNoPoisson.append(deviceID)
                 else:
                     belongsToListNoPoisson.append('Array')
@@ -490,7 +490,7 @@ class Array(object):
                     failureEventsList.append(self.__Poisson[dIndex])
                     repairActionEventsList.append(self.__Poisson[dIndex])
 
-                    if componentID in device_systems:
+                    if componentSubType in device_systems:
                         belongsToList.append(deviceID)
                     else:
                         belongsToList.append('Array')
@@ -633,7 +633,7 @@ class Array(object):
                     continue
 
                 # Number of devices
-                for iCnt1 in range(0, len(system[iCnt])):
+                for iCnt1 in range(0, len(system)):
 
                     flagMFSubSystem = False
                     subsystem = system[iCnt1]
