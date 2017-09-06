@@ -89,7 +89,8 @@ setup(name='dtocean-maintenance',
           'pandas'
       ],
       zip_safe=False, # Important for reading config files
-      tests_require=['pytest'],
+      tests_require=['pytest',
+                     'pytest-mock'],
       cmdclass = {'test': PyTest,
                   'cleanpyc': CleanPyc,
                   },
