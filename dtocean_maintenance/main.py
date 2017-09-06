@@ -351,48 +351,42 @@ class LCOE_Calculator(object):
 
         self.__Simu_Param (dict): This parameter records the general
         information concerning the simulation
+
             keys:
                 Nbodies (int) [-]:
                     Number of devices
                 annual_Energy_Production_perD (numpy.ndarray) [Wh]:
                     Annual energy production of each device on the array.
-                    The dimension of the array is Nbodies x 1 (WP2)
+                    The dimension of the array is Nbodies x 1
                 arrayInfoLogistic (DataFrame) [-]:
                     Information about component_id, depth, x_coord, y_coord,
                     zone, bathymetry, soil type
-                missionTime (float) [year]:
-                    Simulation time
-                power_prod_perD (numpy.ndarray) [W]:
-                    Mean power production per device. The dimension of the
-                    array is Nbodies x 1 (WP2)
+                power_prod_perD (dict) [W]:
+                    Mean power production per device.
+                startProjectDate (datetime) [-]:
+                    Date of project start
                 startOperationDate (datetime) [-]:
                     Date of simulation start
+                missionTime (float) [year]:
+                    Simulation time
 
 
         self.__Control_Param (dict): This parameter records the O&M module
         control from GUI (to be extended in future)
             keys:
-                whichOptim (list) [bool]:
-                    Which O&M should be optimised [Unplanned corrective
-                    maintenance, Condition based maintenance, Calendar
-                    based maintenance]
-                checkNoSolution (bool) [-]:
-                    see below
-                integrateSelectPort (bool) [-]:
-                    see below)
-
+                checkNoSolution (bool) [-]: see below
+                curtailDevices (bool) [-]: shut down devices indefinitely
+                numberOfSimulations (int) [-]: Statistical population size
+                NumberOfParallelActions (int) [-]:
+                    Maximum number of operations that can be completed by one
+                    vessel. Optional, defaults to 10
+                
                 ###############################################################
                 ###############################################################
                 ###############################################################
                 Some of the function developed by logistic takes some times
                 for running. With the following flags is possible to control
                 the call of such functions.
-
-                Control_Param['integrateSelectPort'] is True  ->
-                    callOM_PortSelection
-                Control_Param['integrateSelectPort'] is False ->
-                    do not call OM_PortSelection, set constant values for
-                    port parameters
 
                 # Control_Param['checkNoSolution'] is True  ->
                     check the feasibility of logistic solution before the
@@ -434,7 +428,6 @@ class LCOE_Calculator(object):
         arrayDict (dict) [-]:
             dictionary for the saving of model calculation
         startOperationDate (datetime) [-]: date of simulation start
-        self.__powerOfDevices (list of float) [W]: power of devices
         self.__annual_Energy_Production_perD (list of float) [Wh]:
             Annual energy production per device
         self.__NrOfDevices (int) [-]: Number of devices
@@ -550,8 +543,10 @@ class LCOE_Calculator(object):
             time extension in case of condition based maintenance after the
             detction of soh_threshold
         self.__checkNoSolution (bool) [-]: see below
+        self.__curtailDevices (bool) [-]: shut down devices indefinitely
         self.__dtocean_maintenance_PRINT_FLAG (bool) [-]: see below
         self.__dtocean-logistics_PRINT_FLAG (bool) [-]: see below
+        self.__dtocean_maintenance_TEST_FLAG (bool) [-]: see below
 
         #######################################################################
         #######################################################################
@@ -579,11 +574,6 @@ class LCOE_Calculator(object):
             print the results in excel files
         self.__dtocean_maintenance_TEST_FLAG is False ->
             do not print the results in excel files
-
-        self.__ignoreWeatherWindow is True  ->
-            The case "NoWeatherWindowFound" will be ignored
-        self.__ignoreWeatherWindow is False ->
-            The case "NoWeatherWindowFound" wont be ignored
 
        ########################################################################
        ########################################################################
@@ -655,16 +645,8 @@ class LCOE_Calculator(object):
         # Dictionary for saving the parameters
         self.__arrayDict = {}
 
-        # Which O&M should be calculated?
-        # [unplaned corrective maintenance, condition based maintenance,
-        #  calandar based maintenance]
-        self.__whichOptim = self.__Control_Param['whichOptim']
-
         # Start of operation date
         self.__startOperationDate = self.__Simu_Param['startOperationDate']
-
-        # Power of devices [W]
-        self.__powerOfDevices = self.__Simu_Param['power_prod_perD']
 
         # Annual_Energy_Production_perD [Wh]
         self.__annual_Energy_Production_perD = \
@@ -1050,7 +1032,15 @@ class LCOE_Calculator(object):
         # maintenance
 
         # Calendar based maintenance: Number of parallel actions [-]
-        self.__CaBaMa_nrOfMaxActions = 10
+        if ("NumberOfParallelActions" in self.__Control_Param and
+            self.__Control_Param["NumberOfParallelActions"] is not None):
+            
+            self.__CaBaMa_nrOfMaxActions = \
+                                self.__Control_Param["NumberOfParallelActions"]
+        
+        else:
+        
+            self.__CaBaMa_nrOfMaxActions = 10
 
         # Keys of CaBaMa_eventsTableKeys
         self.__CaBaMa_eventsTableKeys  = ['startActionDate',
@@ -1166,14 +1156,13 @@ class LCOE_Calculator(object):
         # Start: Flags for dtocean_maintenance test purposes
 
         self.__checkNoSolution = self.__Control_Param['checkNoSolution']
+        self.__curtailDevices = self.__Control_Param['curtailDevices']
         self.__dtocean_maintenance_PRINT_FLAG = self.__Control_Param[
                                             'dtocean_maintenance_PRINT_FLAG']
         self.__dtocean_logistics_PRINT_FLAG = self.__Control_Param[
                                             'dtocean_logistics_PRINT_FLAG']
         self.__dtocean_maintenance_TEST_FLAG = self.__Control_Param[
                                             'dtocean_maintenance_TEST_FLAG']
-        self.__ignoreWeatherWindow = self.__Control_Param[
-                                            'ignoreWeatherWindow']
 
         return
 
