@@ -282,13 +282,14 @@ class inputOM:
                 arrayInfoLogistic (DataFrame) [-]:
                     Information about component_id, depth, x_coord, y_coord,
                     zone, bathymetry, soil type
-                missionTime (float) [year]:
-                    Simulation time
-                power_prod_perD (numpy.ndarray) [W]:
-                    Mean power production per device. The dimension of the
-                    array is Nbodies x 1
+                power_prod_perD (dict) [W]:
+                    Mean power production per device.
+                startProjectDate (datetime) [-]:
+                    Date of project start
                 startOperationDate (datetime) [-]:
                     Date of simulation start
+                missionTime (float) [year]:
+                    Simulation time
 
         Control_Param (dict): This parameter records the O&M module control
             from GUI (to be extended in future)
