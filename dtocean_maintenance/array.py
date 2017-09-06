@@ -13,7 +13,7 @@ import logging
 
 import pandas as pd
 
-from .static import poissonProcess
+from .static import poisson_process
 
 # Set up logging
 module_logger = logging.getLogger(__name__)
@@ -582,9 +582,9 @@ class Array(object):
 
         rate_day = failureRate / self.__yearDays
 
-        returnValue = poissonProcess(self.__startOperationDate,
-                                     self.__simulationTimeDay,
-                                     rate_day)
+        returnValue = poisson_process(self.__startOperationDate,
+                                      self.__simulationTimeDay,
+                                      rate_day)
 
         if type(returnValue) == list and 1 <= len(returnValue):
             self.__Poisson = returnValue

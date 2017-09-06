@@ -15,9 +15,9 @@ import datetime
 import numpy as np
 
 
-def poissonProcess(startOperationDate, simulationTime, failureRate):
+def poisson_process(startOperationDate, simulationTime, failureRate):
 
-    '''poissonProcess function: Estimation of random failure occurence of
+    '''poisson_process function: Estimation of random failure occurence of
     components
 
     Args:
