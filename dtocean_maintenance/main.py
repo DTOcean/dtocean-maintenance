@@ -33,64 +33,33 @@ from dtocean_reliability.main import Variables, Main
 # Internal modules
 from .array import Array
 from .logistics import om_logistics_main
-from .static import poissonProcess
+from .static import (Availability,
+                     Energy,
+                     get_uptime_df,
+                     get_device_energy_df,
+                     get_opex_per_year,
+                     get_number_of_journeys,
+                     poisson_process)
 
 # Set up logging
 module_logger = logging.getLogger(__name__)
 
 
-class LCOE_Optimiser(object):
+class LCOE_Statistics(object):
+    
+    """Calculate statistical results of O&M calculations
+    
+    Args:
+        inputOMPtr (class): pointer of class inputOM
+
+    Attributes:
+        self.__inputOMPTR (class): Instance pointer of inputOM
+    """
 
     def __init__(self, inputOMPtr):
 
-        '''__init__ function: init function of LCOE_Optimiser: entry class of
-        dtocean-maintenance module
-
-        Args:
-            inputOMPtr (class): pointer of class inputOM
-
-        Attributes:
-            self.__calcPTR (class): Instance pointer of LCOE_Calculator
-            self.__inputOMPTR (class): Instance pointer of inputOM
-            self.__outputsOfWP6 (dict): Dictionary which contains the outputs
-              of WP6, Optimised LCOE of array [€/kWh], AnnualEnergyOfArray
-              [MWh] etc.
-
-        Returns:
-            no returns
-
-        '''
-
-        # Instance pointer of LCOE_Calculator
-        self.__calcPTR = None
-
         # Instance pointer of inputOM
-        self.__inputOMPTR = inputOMPtr
-
-        # output of WP6
-        self.__outputsOfWP6 = {}
-
-        # Make an instance of LCOE_Calculator
-        self.__makeInstance()
-
-        return
-
-    def __makeInstance(self):
-
-        '''__makeInstance function: makes an instance of class LCOE_Calculator.
-
-        Args:
-            no arguments
-
-        Attributes:
-            self.__calcPTR (calss): Instance pointer of LCOE_Calculator
-
-        Returns:
-            no returns
-
-        '''
-
-        self.__calcPTR = LCOE_Calculator(self.__inputOMPTR)
+        self.__inputOMPtr = inputOMPtr
 
         return
 
@@ -1574,9 +1543,9 @@ class LCOE_Calculator(object):
 
                         frate = failureRateDummy / self.__yearDays
 
-                        poissonValue = poissonProcess(currentStartActionDate,
-                                                      self.__operationTimeDay,
-                                                      frate)
+                        poissonValue = poisson_process(currentStartActionDate,
+                                                       self.__operationTimeDay,
+                                                       frate)
 
                         self.__arrayDict[ComponentID] \
                                         ['CoBaMa_FR List'] \
