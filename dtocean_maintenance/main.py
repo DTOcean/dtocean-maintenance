@@ -67,49 +67,97 @@ class LCOE_Statistics(object):
 
         '''__call__ function: call function
 
-        Args:
-            no arguments
-
-        Attributes:
-            no attributs
-
         Returns:
-            self.__outputsOfWP6 (dict): Output of WP6
+            output_dict (dict): Output of WP6
 
         '''
 
-        self.executeOptim()
-
-        return self.__outputsOfWP6
-
-
-    def executeOptim(self):
-
-        '''executeOptim function: calls LCOE_Calculator for the calculation of
-        LCOE
-
-        Args:
-            no arguments
-
-        Attributes:
-            self.__outputsOfWP6 (dict): Output of WP6
-
-        Returns:
-            self.__outputsOfWP6 (dict): Output of WP6
-
-        '''
-
-        # the optimisation algorithm will be implemented here in a loop
         try:
 
-            self.__outputsOfWP6 = self.__calcPTR.executeCalc()
+            output_dict = self.main()
 
         except KeyboardInterrupt:
 
             sys.exit('Interrupt by Keyboard in dtocean_maintenance')
+            
+        return output_dict
 
-        return self.__outputsOfWP6
+    def main(self):
 
+        '''Calls LCOE_Calculator for the calculation of of O&M plan for the
+        required population size and accumulates the results.
+
+        Returns:
+            output_dict (dict): Output of WP6
+
+        '''
+
+        control_param = self.__inputOMPtr.get_Control_Param()
+
+        # Population size
+        n_sims = control_param['numberOfSimulations']
+        
+        metrics_dict = {"lifetimeOpex [Euro]": [],
+                        "lifetimeEnergy [Wh]": [],
+                        "arrayDowntime [hour]": [],
+                        "arrayAvailability [-]": [],
+                        "numberOfJourneys [-]": []}
+        year_opex_df = pd.DataFrame()
+        year_energies_df = pd.DataFrame()
+        device_downtime_df = pd.DataFrame()
+        device_energies_df = pd.DataFrame()
+        events_table_dicts = []
+                
+        # Run simulations and collect results
+        for sim_number in xrange(n_sims):
+                        
+            calculator = LCOE_Calculator(self.__inputOMPtr)
+            data_point = calculator.executeCalc()
+                                    
+            for key in metrics_dict.keys():
+                metrics_dict[key].append(data_point[key])
+            
+            year_opex = data_point["OpexPerYear [Euro]"].set_index("Year")
+            year_opex.columns = ["Cost {} [Euro]".format(sim_number)]
+            year_opex_df = pd.concat([year_opex_df, year_opex],
+                                     axis=1)
+            
+            year_energies = data_point["energyPerYear [Wh]"].set_index("Year")
+            year_energies.columns = ["Energy {} [Wh]".format(sim_number)]
+            year_energies_df = pd.concat([year_energies_df, year_energies],
+                                         axis=1)
+            
+            downtime_dict = {k: v for k, v in 
+                                data_point["downtimePerDevice [hour]"].items()}
+            downtime_dict = {"Downtime {} [hours]".format(sim_number):
+                                                                downtime_dict}
+            downtime_df = pd.DataFrame(downtime_dict)
+            device_downtime_df = pd.concat([device_downtime_df, downtime_df],
+                                           axis=1)
+            
+            energies_dict = {k: v for k, v in 
+                                data_point["energyPerDevice [Wh]"].items()}
+            energies_dict = {"Energy {} [Wh]".format(sim_number):
+                                                                energies_dict}
+            energies_df = pd.DataFrame(energies_dict)
+            device_energies_df = pd.concat([device_energies_df, energies_df],
+                                           axis=1)
+            
+            events_table_dicts.append(data_point['eventTables [-]'])
+            
+        metrics_df = pd.DataFrame(metrics_dict)
+        
+        output_dict = {"MetricsTable [-]": metrics_df,
+                       "OpexPerYear [Euro]": year_opex_df,
+                       "energyPerYear [Wh]": year_energies_df,
+                       "downtimePerDevice [hour]": device_downtime_df,
+                       "energyPerDevice [Wh]": device_energies_df,
+                       'eventTables [-]': events_table_dicts,
+                       "CapexOfArray [Euro]":
+                           data_point["CapexOfArray [Euro]"]}
+                    
+        return output_dict
+    
 
 class LCOE_Calculator(object):
 
