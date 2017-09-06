@@ -295,16 +295,13 @@ class inputOM:
             from GUI (to be extended in future)
 
             keys:
-                whichOptim (list) [bool]:
-                    Which O&M should be optimised
-                        [Unplanned corrective maintenance,
-                         Condition based maintenance,
-                         Calendar based maintenance]
-
                 checkNoSolution (bool) [-]: see below
-                checkNoSolutionWP6Files (bool) [-]: see below
-                integrateSelectPort (bool) [-]: see below)
-
+                curtailDevices (bool) [-]: shut down devices indefinitely
+                numberOfSimulations (int) [-]: Statistical population size
+                NumberOfParallelActions (int) [-]:
+                    Maximum number of operations that can be completed by one
+                    vessel. Optional, defaults to 10
+                
             Note:
 
                 ###############################################################
@@ -315,12 +312,6 @@ class inputOM:
 
                 With the following flags is possible to control the call of
                 such functions.
-
-                # Control_Param['integrateSelectPort'] is True ->
-                    call OM_PortSelection
-                # Control_Param['integrateSelectPort'] is False ->
-                    do not call OM_PortSelection, set constant values for port
-                    parameters
 
                 # Control_Param['checkNoSolution'] is True  ->
                     check the feasibility of logistic solution before the
