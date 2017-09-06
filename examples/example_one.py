@@ -12,6 +12,8 @@ import pickle
 import random
 import logging
 import datetime
+from pprint import pprint
+from collections import Counter
 
 import pandas as pd
 import numpy as np
@@ -25,10 +27,11 @@ from dtocean_logistics.load.wp_bom import (load_user_inputs,
                                            load_hydrodynamic_outputs)
 from dtocean_logistics.load.wp_bom import load_electrical_outputs
 
-from dtocean_maintenance.main import LCOE_Optimiser
+from dtocean_maintenance.main import LCOE_Statistics, LCOE_Calculator
 from dtocean_maintenance.input import inputOM
 
-module_logger = logging.getLogger(__name__)
+
+logging.basicConfig(format='%(asctime)s %(message)s')
 
 
 # dummy function to load files from the database folder of reliability    
@@ -169,15 +172,11 @@ def test():
     # Some of the function developed by logistic takes some times for running. 
     # With the following flags is possible to control the call of such functions.
     
-    # flag: integrateSelectPort
-    # Control_Param['integrateSelectPort'] is True  -> call OM_PortSelection
-    # Control_Param['integrateSelectPort'] is False -> do not call OM_PortSelection, set constant values for port parameters
-    Control_Param['integrateSelectPort'] = False 
     
     # flag: checkNoSolution
     # Control_Param['checkNoSolution'] is True  -> check the feasibility of logistic solution before the simulation 
     # Control_Param['checkNoSolution'] is False -> do not check the feasibility of logistic solution before the simulation
-    Control_Param['checkNoSolution'] = False 
+    Control_Param['checkNoSolution'] = True
     
     # flag: dtocean_maintenance print flag               
     # Control_Param['dtocean_maintenance_PRINT_FLAG'] is True  -> print is allowed inside of dtocean_maintenance
@@ -194,16 +193,11 @@ def test():
     # Control_Param['dtocean_maintenance_TEST_FLAG'] is False -> do not print the results in excel files
     Control_Param['dtocean_maintenance_TEST_FLAG'] = True 
     
-    # Flag: read from RAM
-    # Control_Param['readFailureRateFromRAM'] is True  -> Failure rate is read from RAM
-    # Control_Param['readFailureRateFromRAM'] is False -> Failure rate is read from component table (IWES)
-    Control_Param['readFailureRateFromRAM'] = True 
+    # flag: permanently curtail devices rather than fix them
+    Control_Param['curtailDevices'] = False
     
-    # flag: ignore weather window in case of corrective_maintenance and condition_based_maintenance  
-    # Control_Param['ignoreWeatherWindow'] is True  -> The case "NoWeatherWindowFound" will be ignored in dtocean-operations 
-    # Control_Param['ignoreWeatherWindow'] is False -> The case "NoWeatherWindowFound" wont be ignored in dtocean-operations. In this case the coresponding device/devices will be switched off.
-    # This flag is internally set to True in case of calendar_based_maintenance    
-    Control_Param['ignoreWeatherWindow'] = True 
+    # flag: population size
+    Control_Param['numberOfSimulations']  = 3
     
     ###############################################################################
     ###############################################################################
@@ -281,6 +275,7 @@ def test():
     
     # Simu_Param contains parameters from WP3 and Core 
     # startOperationDate [-]
+    Simu_Param['startProjectDate'] = datetime.datetime(2015,01,01)
     Simu_Param['startOperationDate'] = datetime.datetime(2016,01,01)
     
     # missionTime [year]
@@ -302,16 +297,17 @@ def test():
     
     
     # This information is coming from WP3. Use the random values in coreSimu    
-    arrayDummy1 = []
+    dictDummy1 = {}
     arrayDummy2 = []
     for iCnt in range(0,Simu_Param['Nbodies']):
-        arrayDummy1.append(avePower*random.randint(95, 105)/100.0)
-        arrayDummy2.append(arrayDummy1[iCnt]*fullLoadHours)
+        power = avePower*random.randint(95, 105)/100.0
+        dictDummy1['device'+'{:03d}'.format(iCnt+1)] = power
+        arrayDummy2.append(power*fullLoadHours)
     
-    Simu_Param['power_prod_perD']               = np.array(arrayDummy1)
+    Simu_Param['power_prod_perD']               = dictDummy1
     Simu_Param['annual_Energy_Production_perD'] = np.array(arrayDummy2)
     
-    del arrayDummy1, arrayDummy2 
+    del dictDummy1, arrayDummy2 
     
     # This information is coming from WP3. Use the random values in coreSimu    
     # units [[-], [m], [m], [m], [-], [m], [-]]                       
@@ -742,7 +738,6 @@ def test():
     Logistic_Param['layout']                = load_hydrodynamic_outputs(database_logistic("ouputs_hydrodynamic.xlsx"))
     Logistic_Param['collection_point'], Logistic_Param['dynamic_cable'], Logistic_Param['static_cable'], Logistic_Param['cable_route'], Logistic_Param['connectors'], Logistic_Param['external_protection'], Logistic_Param['topology'] = load_electrical_outputs(database_logistic("ouputs_electrical.xlsx"))
     
-    
     # RAM_Param
     RAM_Param['severitylevel'] = 'critical'
     RAM_Param['calcscenario'] = 'mean'
@@ -830,7 +825,40 @@ def test():
     
     with open("oandm_example_inputs.pkl", "wb") as fstream:
         pickle.dump(inputOMPtr, fstream, -1)
-                       
+    
+    # Check for errors
+    ptrCheck = LCOE_Calculator(inputOMPtr)
+    outputWP6 = ptrCheck()
+    
+    if not outputWP6['error [-]']['error_ID [-]'][0] == 'NoError':
+                            
+        if outputWP6['error [-]']['error_ID [-]'][0] == 'NoSolutionsFound':
+            print 'WP6: ******************************************************'
+            print 'WP6: Problem with feasibility of logistic solution'
+            print 'WP6: please see error_ID in outputWP6 for more information'
+            
+        if outputWP6['error [-]']['error_ID [-]'][0] == 'NoInspPortFound':
+            print 'WP6: ******************************************************'
+            print 'WP6: Problem with selection of insoection port\n'
+            print 'WP6: please see error_ID in outputWP6 for more information'
+            
+        if outputWP6['error [-]']['error_ID [-]'][0] == 'NoRepairPortFound':
+            print 'WP6: ******************************************************'
+            print 'WP6: Problem with selection of repair port\n'
+            print 'WP6: please see error_ID in outputWP6 for more information'       
+    
+    # Re-enter the inputs
+    Control_Param['checkNoSolution'] = False
+    inputOMPtr = inputOM(Farm_OM,
+                       Component,
+                       Failure_Mode,
+                       Repair_Action,
+                       Inspection,
+                       RAM_Param,
+                       Logistic_Param,
+                       Simu_Param,
+                       Control_Param)
+    
     # clear the variables
     del Farm_OM 
     del Component 
@@ -840,42 +868,35 @@ def test():
     del RAM_Param 
     del Logistic_Param 
     del Simu_Param 
-    del Control_Param
-            
-        
-    # Call WP6 optimiser
-    ptrOptim = LCOE_Optimiser(inputOMPtr)
-    del inputOMPtr 
-    outputWP6 = ptrOptim()
-    return outputWP6 
-          
-start_time = time.time()
-
-# Call dtocean_maintenance
-outputWP6 = test()
-
-if outputWP6['error [-]']['error_ID [-]'][0] == 'NoError':
-    # Unit [Euro/kWh] 
-    print 'WP6: ***************************************************************'
-    print 'WP6: LCOE = ' , outputWP6['lcoeOfArray [Euro/KWh]'], ' [Euro/KWh]'
+    del Control_Param   
+     
+    # Call WP6
+    ptrMain = LCOE_Statistics(inputOMPtr)
+    outputWP6 = ptrMain()
     
-else:
-                        
-    if outputWP6['error [-]']['error_ID [-]'][0] == 'NoSolutionsFound':
-        print 'WP6: ***********************************************************'
-        print 'WP6: Problem with feasibility of logistic solution'
-        print 'WP6: please see error_ID in outputWP6 for more information'
-        
-    if outputWP6['error [-]']['error_ID [-]'][0] == 'NoInspPortFound':
-        print 'WP6: ***********************************************************'
-        print 'WP6: Problem with selection of insoection port\n'
-        print 'WP6: please see error_ID in outputWP6 for more information'
-        
-    if outputWP6['error [-]']['error_ID [-]'][0] == 'NoRepairPortFound':
-        print 'WP6: ***********************************************************'
-        print 'WP6: Problem with selection of repair port\n'
-        print 'WP6: please see error_ID in outputWP6 for more information'        
-        
-         
-print('WP6: --- Required time in seconds ---')
-print('WP6: --- %s ---' % (time.time() - start_time))
+    return outputWP6
+
+if __name__ == "__main__":
+          
+    start_time = time.time()
+    
+    # Call dtocean_maintenance
+    outputWP6 = test()
+    
+    print 'WP6: ***********************************************************'
+    print outputWP6["MetricsTable [-]"]
+    print ""
+    print outputWP6["MetricsTable [-]"].mean()
+    print ""
+    print outputWP6["MetricsTable [-]"].std()
+    print ""
+    print outputWP6["OpexPerYear [Euro]"]
+    print ""
+    print outputWP6["energyPerYear [Wh]"]
+    print ""
+    print outputWP6["downtimePerDevice [hour]"]
+    print ""
+    print outputWP6["energyPerDevice [Wh]"]
+    print ""
+    print 'WP6: --- Required time in seconds ---'
+    print 'WP6: --- %s ---' % (time.time() - start_time)

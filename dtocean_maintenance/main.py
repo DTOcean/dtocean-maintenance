@@ -33,64 +33,33 @@ from dtocean_reliability.main import Variables, Main
 # Internal modules
 from .array import Array
 from .logistics import om_logistics_main
-from .static import poissonProcess
+from .static import (Availability,
+                     Energy,
+                     get_uptime_df,
+                     get_device_energy_df,
+                     get_opex_per_year,
+                     get_number_of_journeys,
+                     poisson_process)
 
 # Set up logging
 module_logger = logging.getLogger(__name__)
 
 
-class LCOE_Optimiser(object):
+class LCOE_Statistics(object):
+    
+    """Calculate statistical results of O&M calculations
+    
+    Args:
+        inputOMPtr (class): pointer of class inputOM
+
+    Attributes:
+        self.__inputOMPTR (class): Instance pointer of inputOM
+    """
 
     def __init__(self, inputOMPtr):
 
-        '''__init__ function: init function of LCOE_Optimiser: entry class of
-        dtocean-maintenance module
-
-        Args:
-            inputOMPtr (class): pointer of class inputOM
-
-        Attributes:
-            self.__calcPTR (class): Instance pointer of LCOE_Calculator
-            self.__inputOMPTR (class): Instance pointer of inputOM
-            self.__outputsOfWP6 (dict): Dictionary which contains the outputs
-              of WP6, Optimised LCOE of array [€/kWh], AnnualEnergyOfArray
-              [MWh] etc.
-
-        Returns:
-            no returns
-
-        '''
-
-        # Instance pointer of LCOE_Calculator
-        self.__calcPTR = None
-
         # Instance pointer of inputOM
-        self.__inputOMPTR = inputOMPtr
-
-        # output of WP6
-        self.__outputsOfWP6 = {}
-
-        # Make an instance of LCOE_Calculator
-        self.__makeInstance()
-
-        return
-
-    def __makeInstance(self):
-
-        '''__makeInstance function: makes an instance of class LCOE_Calculator.
-
-        Args:
-            no arguments
-
-        Attributes:
-            self.__calcPTR (calss): Instance pointer of LCOE_Calculator
-
-        Returns:
-            no returns
-
-        '''
-
-        self.__calcPTR = LCOE_Calculator(self.__inputOMPTR)
+        self.__inputOMPtr = inputOMPtr
 
         return
 
@@ -98,49 +67,97 @@ class LCOE_Optimiser(object):
 
         '''__call__ function: call function
 
-        Args:
-            no arguments
-
-        Attributes:
-            no attributs
-
         Returns:
-            self.__outputsOfWP6 (dict): Output of WP6
+            output_dict (dict): Output of WP6
 
         '''
 
-        self.executeOptim()
-
-        return self.__outputsOfWP6
-
-
-    def executeOptim(self):
-
-        '''executeOptim function: calls LCOE_Calculator for the calculation of
-        LCOE
-
-        Args:
-            no arguments
-
-        Attributes:
-            self.__outputsOfWP6 (dict): Output of WP6
-
-        Returns:
-            self.__outputsOfWP6 (dict): Output of WP6
-
-        '''
-
-        # the optimisation algorithm will be implemented here in a loop
         try:
 
-            self.__outputsOfWP6 = self.__calcPTR.executeCalc()
+            output_dict = self.main()
 
         except KeyboardInterrupt:
 
             sys.exit('Interrupt by Keyboard in dtocean_maintenance')
+            
+        return output_dict
 
-        return self.__outputsOfWP6
+    def main(self):
 
+        '''Calls LCOE_Calculator for the calculation of of O&M plan for the
+        required population size and accumulates the results.
+
+        Returns:
+            output_dict (dict): Output of WP6
+
+        '''
+
+        control_param = self.__inputOMPtr.get_Control_Param()
+
+        # Population size
+        n_sims = control_param['numberOfSimulations']
+        
+        metrics_dict = {"lifetimeOpex [Euro]": [],
+                        "lifetimeEnergy [Wh]": [],
+                        "arrayDowntime [hour]": [],
+                        "arrayAvailability [-]": [],
+                        "numberOfJourneys [-]": []}
+        year_opex_df = pd.DataFrame()
+        year_energies_df = pd.DataFrame()
+        device_downtime_df = pd.DataFrame()
+        device_energies_df = pd.DataFrame()
+        events_table_dicts = []
+                
+        # Run simulations and collect results
+        for sim_number in xrange(n_sims):
+                        
+            calculator = LCOE_Calculator(self.__inputOMPtr)
+            data_point = calculator.executeCalc()
+                                    
+            for key in metrics_dict.keys():
+                metrics_dict[key].append(data_point[key])
+            
+            year_opex = data_point["OpexPerYear [Euro]"].set_index("Year")
+            year_opex.columns = ["Cost {} [Euro]".format(sim_number)]
+            year_opex_df = pd.concat([year_opex_df, year_opex],
+                                     axis=1)
+            
+            year_energies = data_point["energyPerYear [Wh]"].set_index("Year")
+            year_energies.columns = ["Energy {} [Wh]".format(sim_number)]
+            year_energies_df = pd.concat([year_energies_df, year_energies],
+                                         axis=1)
+            
+            downtime_dict = {k: v for k, v in 
+                                data_point["downtimePerDevice [hour]"].items()}
+            downtime_dict = {"Downtime {} [hours]".format(sim_number):
+                                                                downtime_dict}
+            downtime_df = pd.DataFrame(downtime_dict)
+            device_downtime_df = pd.concat([device_downtime_df, downtime_df],
+                                           axis=1)
+            
+            energies_dict = {k: v for k, v in 
+                                data_point["energyPerDevice [Wh]"].items()}
+            energies_dict = {"Energy {} [Wh]".format(sim_number):
+                                                                energies_dict}
+            energies_df = pd.DataFrame(energies_dict)
+            device_energies_df = pd.concat([device_energies_df, energies_df],
+                                           axis=1)
+            
+            events_table_dicts.append(data_point['eventTables [-]'])
+            
+        metrics_df = pd.DataFrame(metrics_dict)
+        
+        output_dict = {"MetricsTable [-]": metrics_df,
+                       "OpexPerYear [Euro]": year_opex_df,
+                       "energyPerYear [Wh]": year_energies_df,
+                       "downtimePerDevice [hour]": device_downtime_df,
+                       "energyPerDevice [Wh]": device_energies_df,
+                       'eventTables [-]': events_table_dicts,
+                       "CapexOfArray [Euro]":
+                           data_point["CapexOfArray [Euro]"]}
+                    
+        return output_dict
+    
 
 class LCOE_Calculator(object):
 
@@ -382,48 +399,42 @@ class LCOE_Calculator(object):
 
         self.__Simu_Param (dict): This parameter records the general
         information concerning the simulation
+
             keys:
                 Nbodies (int) [-]:
                     Number of devices
                 annual_Energy_Production_perD (numpy.ndarray) [Wh]:
                     Annual energy production of each device on the array.
-                    The dimension of the array is Nbodies x 1 (WP2)
+                    The dimension of the array is Nbodies x 1
                 arrayInfoLogistic (DataFrame) [-]:
                     Information about component_id, depth, x_coord, y_coord,
                     zone, bathymetry, soil type
-                missionTime (float) [year]:
-                    Simulation time
-                power_prod_perD (numpy.ndarray) [W]:
-                    Mean power production per device. The dimension of the
-                    array is Nbodies x 1 (WP2)
+                power_prod_perD (dict) [W]:
+                    Mean power production per device.
+                startProjectDate (datetime) [-]:
+                    Date of project start
                 startOperationDate (datetime) [-]:
                     Date of simulation start
+                missionTime (float) [year]:
+                    Simulation time
 
 
         self.__Control_Param (dict): This parameter records the O&M module
         control from GUI (to be extended in future)
             keys:
-                whichOptim (list) [bool]:
-                    Which O&M should be optimised [Unplanned corrective
-                    maintenance, Condition based maintenance, Calendar
-                    based maintenance]
-                checkNoSolution (bool) [-]:
-                    see below
-                integrateSelectPort (bool) [-]:
-                    see below)
-
+                checkNoSolution (bool) [-]: see below
+                curtailDevices (bool) [-]: shut down devices indefinitely
+                numberOfSimulations (int) [-]: Statistical population size
+                NumberOfParallelActions (int) [-]:
+                    Maximum number of operations that can be completed by one
+                    vessel. Optional, defaults to 10
+                
                 ###############################################################
                 ###############################################################
                 ###############################################################
                 Some of the function developed by logistic takes some times
                 for running. With the following flags is possible to control
                 the call of such functions.
-
-                Control_Param['integrateSelectPort'] is True  ->
-                    callOM_PortSelection
-                Control_Param['integrateSelectPort'] is False ->
-                    do not call OM_PortSelection, set constant values for
-                    port parameters
 
                 # Control_Param['checkNoSolution'] is True  ->
                     check the feasibility of logistic solution before the
@@ -465,7 +476,6 @@ class LCOE_Calculator(object):
         arrayDict (dict) [-]:
             dictionary for the saving of model calculation
         startOperationDate (datetime) [-]: date of simulation start
-        self.__powerOfDevices (list of float) [W]: power of devices
         self.__annual_Energy_Production_perD (list of float) [Wh]:
             Annual energy production per device
         self.__NrOfDevices (int) [-]: Number of devices
@@ -581,8 +591,10 @@ class LCOE_Calculator(object):
             time extension in case of condition based maintenance after the
             detction of soh_threshold
         self.__checkNoSolution (bool) [-]: see below
+        self.__curtailDevices (bool) [-]: shut down devices indefinitely
         self.__dtocean_maintenance_PRINT_FLAG (bool) [-]: see below
         self.__dtocean-logistics_PRINT_FLAG (bool) [-]: see below
+        self.__dtocean_maintenance_TEST_FLAG (bool) [-]: see below
 
         #######################################################################
         #######################################################################
@@ -610,11 +622,6 @@ class LCOE_Calculator(object):
             print the results in excel files
         self.__dtocean_maintenance_TEST_FLAG is False ->
             do not print the results in excel files
-
-        self.__ignoreWeatherWindow is True  ->
-            The case "NoWeatherWindowFound" will be ignored
-        self.__ignoreWeatherWindow is False ->
-            The case "NoWeatherWindowFound" wont be ignored
 
        ########################################################################
        ########################################################################
@@ -686,16 +693,8 @@ class LCOE_Calculator(object):
         # Dictionary for saving the parameters
         self.__arrayDict = {}
 
-        # Which O&M should be calculated?
-        # [unplaned corrective maintenance, condition based maintenance,
-        #  calandar based maintenance]
-        self.__whichOptim = self.__Control_Param['whichOptim']
-
         # Start of operation date
         self.__startOperationDate = self.__Simu_Param['startOperationDate']
-
-        # Power of devices [W]
-        self.__powerOfDevices = self.__Simu_Param['power_prod_perD']
 
         # Annual_Energy_Production_perD [Wh]
         self.__annual_Energy_Production_perD = \
@@ -809,7 +808,13 @@ class LCOE_Calculator(object):
 
         #######################################################################
         # start: Declaration of outputs of WP6
+        
         self.__outputsOfWP6 = {}
+        
+        # Information about error (-) [-]
+        self.__outputsOfWP6['error [-]'] = None
+        
+        # Environmental Assessment
         self.__outputsOfWP6['env_assess [-]'] = {}
         self.__outputsOfWP6['env_assess [-]']['UnCoMa_eventsTable'] = {}
         self.__outputsOfWP6['env_assess [-]']['CaBaMa_eventsTable'] = {}
@@ -821,19 +826,6 @@ class LCOE_Calculator(object):
 
         # for maintenance plans in WP6
         self.__outputsOfWP6['eventTables [-]'] = {}
-
-        # LCOE of array (float) [Euro/KWh]
-        self.__outputsOfWP6['lcoeOfArray [Euro/KWh]'] = 0
-
-        # Annual energy of each devices (list of float) [Wh]
-        self.__outputsOfWP6['annualEnergyOfDevices [Wh]'] = []
-
-        # Annual down time of each devices (list of float) [h]
-        self.__outputsOfWP6['annualDownTimeOfDevices [h]'] = []
-
-        # Annual energy of array (float) [Wh]
-        self.__outputsOfWP6['annualEnergyOfArray [Wh]'] = 0
-
 
         # CAPEX of array in case of condition based maintenance strategy
         # (float) [Euro]
@@ -857,16 +849,16 @@ class LCOE_Calculator(object):
                     self.__outputsOfWP6['CapexOfArray [Euro]'] = \
                         self.__outputsOfWP6['CapexOfArray [Euro]'] + \
                             capex_condition
-
-        # Annual OPEX of array (float) [Euro]
-        self.__outputsOfWP6['annualOpexOfArray [Euro]'] = 0
-
-        # Information about error (-) [-]
-        self.__outputsOfWP6['error [-]'] = None
-
-        for iCnt in range(0,self.__NrOfDevices):
-            self.__outputsOfWP6['annualEnergyOfDevices [Wh]'].append(0.0)
-            self.__outputsOfWP6['annualDownTimeOfDevices [h]'].append(0.0)
+                            
+        # Other metrics
+        self.__outputsOfWP6["lifetimeOpex [Euro]"] = None
+        self.__outputsOfWP6["lifetimeEnergy [W]"] = None
+        self.__outputsOfWP6["arrayDowntime [hour]"] = None
+        self.__outputsOfWP6["arrayAvailability [-]"] = None
+        self.__outputsOfWP6["downtimePerDevice [hour]"] = None
+        self.__outputsOfWP6["energyPerDevice [W]"] = None
+        self.__outputsOfWP6["energyPerYear [W]"] = None
+        self.__outputsOfWP6["numberOfJourneys [-]"] = None
 
         # end: Declaration of outputs of WP6
         #######################################################################
@@ -1081,7 +1073,15 @@ class LCOE_Calculator(object):
         # maintenance
 
         # Calendar based maintenance: Number of parallel actions [-]
-        self.__CaBaMa_nrOfMaxActions = 10
+        if ("NumberOfParallelActions" in self.__Control_Param and
+            self.__Control_Param["NumberOfParallelActions"] is not None):
+            
+            self.__CaBaMa_nrOfMaxActions = \
+                                self.__Control_Param["NumberOfParallelActions"]
+        
+        else:
+        
+            self.__CaBaMa_nrOfMaxActions = 10
 
         # Keys of CaBaMa_eventsTableKeys
         self.__CaBaMa_eventsTableKeys  = ['startActionDate',
@@ -1197,14 +1197,13 @@ class LCOE_Calculator(object):
         # Start: Flags for dtocean_maintenance test purposes
 
         self.__checkNoSolution = self.__Control_Param['checkNoSolution']
+        self.__curtailDevices = self.__Control_Param['curtailDevices']
         self.__dtocean_maintenance_PRINT_FLAG = self.__Control_Param[
                                             'dtocean_maintenance_PRINT_FLAG']
         self.__dtocean_logistics_PRINT_FLAG = self.__Control_Param[
                                             'dtocean_logistics_PRINT_FLAG']
         self.__dtocean_maintenance_TEST_FLAG = self.__Control_Param[
                                             'dtocean_maintenance_TEST_FLAG']
-        self.__ignoreWeatherWindow = self.__Control_Param[
-                                            'ignoreWeatherWindow']
 
         return
 
@@ -1317,7 +1316,7 @@ class LCOE_Calculator(object):
         # Execution of functions for the calculation of LCOE
         self.executeCalc()
 
-        return
+        return self.__outputsOfWP6
 
     def executeCalc(self):
 
@@ -1574,9 +1573,9 @@ class LCOE_Calculator(object):
 
                         frate = failureRateDummy / self.__yearDays
 
-                        poissonValue = poissonProcess(currentStartActionDate,
-                                                      self.__operationTimeDay,
-                                                      frate)
+                        poissonValue = poisson_process(currentStartActionDate,
+                                                       self.__operationTimeDay,
+                                                       frate)
 
                         self.__arrayDict[ComponentID] \
                                         ['CoBaMa_FR List'] \
@@ -2614,17 +2613,13 @@ class LCOE_Calculator(object):
             if self.__dtocean_maintenance_PRINT_FLAG == True:
                 print 'calcCoBaMa: Simulation Duration [s]: ' + str(duration)
 
-            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
-        if (self.__om_logistic['findSolution'] == 'NoWeatherWindowFound' and
-            not self.__ignoreWeatherWindow):
+        if self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
 
             if self.__dtocean_maintenance_PRINT_FLAG == True:
                 print 'WP6: ErrorID = NoWeatherWindowFound!'
                 print 'WP6: values = ', values
-
-            # increase the index
-            self.__actIdxOfCoBaMa = self.__actIdxOfCoBaMa + 1
 
             # time consumption CaBaMa
             stop_time_CoBaMa = timeit.default_timer()
@@ -2634,48 +2629,35 @@ class LCOE_Calculator(object):
             if self.__dtocean_maintenance_PRINT_FLAG == True:
                 print 'calcCoBaMa: Simulation Duration [s]: ' + str(duration)
 
-            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
         CaBaMaSolution = False
 
-        if self.__ignoreWeatherWindow:
+        optimal = self.__om_logistic['optimal']
 
-            downtimesecs = (self.__endOperationDate -
-                                                failureDate).total_seconds()
+        self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
+                                             optimal['end_dt'].month,
+                                             optimal['end_dt'].day,
+                                             optimal['end_dt'].hour,
+                                             optimal['end_dt'].minute)
 
-            optLogisticCostValue = 0
-            omCostValueSpare = 0
-            omCostValue = 0
-            totalDownTimeHours = downtimesecs // 3600
-            self.__departOpDate = self.__endOperationDate
-
+        # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
+        if type(optimal['depart_dt']) == dict:
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_replace']
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_retrieve']
         else:
+            dummy__departOpDate = optimal['depart_dt']
 
-            optimal = self.__om_logistic['optimal']
+        self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
+                                                dummy__departOpDate.month,
+                                                dummy__departOpDate.day,
+                                                dummy__departOpDate.hour,
+                                                dummy__departOpDate.minute)
 
-            self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
-                                                 optimal['end_dt'].month,
-                                                 optimal['end_dt'].day,
-                                                 optimal['end_dt'].hour,
-                                                 optimal['end_dt'].minute)
-
-            # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
-            if type(optimal['depart_dt']) == dict:
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_replace']
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_retrieve']
-            else:
-                dummy__departOpDate = optimal['depart_dt']
-
-            self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
-                                                    dummy__departOpDate.month,
-                                                    dummy__departOpDate.day,
-                                                    dummy__departOpDate.hour,
-                                                    dummy__departOpDate.minute)
-
-            # total optim cost from logistic
-            optLogisticCostValue = optimal['total cost']
+        # total optim cost from logistic
+        optLogisticCostValue = optimal['total cost']
 
 #            # Override logistics
 #            opsecs = (self.__endOpDate - self.__departOpDate).total_seconds()
@@ -2683,74 +2665,74 @@ class LCOE_Calculator(object):
 #
 #            optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-            self.__totalSeaTimeHour = optimal['schedule sea time']
+        self.__totalSeaTimeHour = optimal['schedule sea time']
 
-            downsecs = (self.__endOpDate - currentEndDate).total_seconds()
-            totalDownTimeHours = downsecs // 3600
-            
-            # Avoid negative downtime
-            if totalDownTimeHours < 0: totalDownTimeHours = 0
+        downsecs = (self.__endOpDate - currentEndDate).total_seconds()
+        totalDownTimeHours = downsecs // 3600
+        
+        # Avoid negative downtime
+        if totalDownTimeHours < 0: totalDownTimeHours = 0
 
-            (omCostValueSpare,
-             omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
+        (omCostValueSpare,
+         omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
-            totalCostCoBaMa = optLogisticCostValue + omCostValue
+        totalCostCoBaMa = optLogisticCostValue + omCostValue
 
-            # Is there a calandar based maintenance for this Component ID in
-            # near future
-            if (flagCaBaMa == True or
-                (flagCaBaMa == False and
-                     self.__Farm_OM['calendar_based_maintenance'] == True)):
+        # Is there a calandar based maintenance for this Component ID in
+        # near future
+        if (flagCaBaMa == True or
+            (flagCaBaMa == False and
+                 self.__Farm_OM['calendar_based_maintenance'] == True)):
 
-                # find the blocks in CaBaMa
-                if 'device' in ComponentType:
-                    if flagCaBaMa == True:
-                        CaBaMaTableQueryDeviceID  = ComponentType
-                    else:
-                        CaBaMaTableQueryDeviceID  = ComponentType[0:-3]
-
-                    CaBaMaTableQuerySubSystem = ComponentSubType
-
-                elif 'subhub' in ComponentType:
-                    if flagCaBaMa == True:
-                        CaBaMaTableQueryDeviceID = ComponentType
-                    else:
-                        CaBaMaTableQueryDeviceID = ComponentType[0:-3]
+            # find the blocks in CaBaMa
+            if 'device' in ComponentType:
+                if flagCaBaMa == True:
+                    CaBaMaTableQueryDeviceID  = ComponentType
                 else:
-                    CaBaMaTableQueryDeviceID  = 'Array'
-                    CaBaMaTableQuerySubSystem = ComponentType[0:-3]
+                    CaBaMaTableQueryDeviceID  = ComponentType[0:-3]
 
-                if 'subhub' in ComponentType:
+                CaBaMaTableQuerySubSystem = ComponentSubType
 
-                    dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
-                            (self.__CaBaMa_eventsTable['ComponentType'] == \
-                                                CaBaMaTableQueryDeviceID) & \
-                            (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
-                            (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
-
+            elif 'subhub' in ComponentType:
+                if flagCaBaMa == True:
+                    CaBaMaTableQueryDeviceID = ComponentType
                 else:
+                    CaBaMaTableQueryDeviceID = ComponentType[0:-3]
+            else:
+                CaBaMaTableQueryDeviceID  = 'Array'
+                CaBaMaTableQuerySubSystem = ComponentType[0:-3]
 
-                    dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
-                        (self.__CaBaMa_eventsTable['RA_ID'] == RA_ID) & \
-                        (self.__CaBaMa_eventsTable['ComponentSubType'] == \
-                                           CaBaMaTableQuerySubSystem) & \
-                         (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
-                         (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+            if 'subhub' in ComponentType:
 
-                indexDummyCaBaMaTable = 0
+                dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
+                        (self.__CaBaMa_eventsTable['ComponentType'] == \
+                                            CaBaMaTableQueryDeviceID) & \
+                        (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
+                        (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
 
-                # currently only for device. The components of the array will
-                # be repaired immediately
-                if 1 < len(dummyCaBaMaTable) and 'device' in ComponentType:
+            else:
 
-                    (CaBaMaSolution,
-                     dummyCaBaMaEndDate) = self.__switch_to_calendar(
-                                                             CaBaMaSolution,
-                                                             dummyCaBaMaTable,
-                                                             ComponentID,
-                                                             currentAlarmDate,
-                                                             currentEndDate,
-                                                             totalCostCoBaMa)
+                dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
+                    (self.__CaBaMa_eventsTable['RA_ID'] == RA_ID) & \
+                    (self.__CaBaMa_eventsTable['ComponentSubType'] == \
+                                       CaBaMaTableQuerySubSystem) & \
+                     (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
+                     (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+
+            indexDummyCaBaMaTable = 0
+
+            # currently only for device. The components of the array will
+            # be repaired immediately
+            if 1 < len(dummyCaBaMaTable) and 'device' in ComponentType:
+
+                (CaBaMaSolution,
+                 dummyCaBaMaEndDate) = self.__switch_to_calendar(
+                                                         CaBaMaSolution,
+                                                         dummyCaBaMaTable,
+                                                         ComponentID,
+                                                         currentAlarmDate,
+                                                         currentEndDate,
+                                                         totalCostCoBaMa)
 
         if CaBaMaSolution == True:
 
@@ -2932,7 +2914,7 @@ class LCOE_Calculator(object):
                     
                     continue
 
-                if self.__ignoreWeatherWindow:
+                if self.__curtailDevices:
 
                     self.__arrayDict[keys[iCnt1]][
                                             'CoBaMaNoWeatherWindow'] = True
@@ -3475,67 +3457,59 @@ class LCOE_Calculator(object):
 
                     if flag == 'NoWeatherWindowFound':
                          print 'WP6: ErrorID = NoWeatherWindowFound!'
-
-                optLogisticCostValue = 0
-                omCostValue = 0
-                totalDownTimeHours = 0
-                operation_action_date = currentStartActionDate
-                self.__endOpDate = currentStartActionDate
                 
                 raise RuntimeError(self.__om_logistic['findSolution'])
 
+            optimal = self.__om_logistic['optimal']
+
+            self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
+                                                 optimal['end_dt'].month,
+                                                 optimal['end_dt'].day,
+                                                 optimal['end_dt'].hour,
+                                                 optimal['end_dt'].minute)
+
+            # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
+            if type(optimal['depart_dt']) == dict:
+                dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_replace']
+                dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_retrieve']
             else:
+                dummy__departOpDate = optimal['depart_dt']
 
-                optimal = self.__om_logistic['optimal']
+            self.__departOpDate = datetime.datetime(
+                                                dummy__departOpDate.year,
+                                                dummy__departOpDate.month,
+                                                dummy__departOpDate.day,
+                                                dummy__departOpDate.hour,
+                                                dummy__departOpDate.minute)
 
-                self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
-                                                     optimal['end_dt'].month,
-                                                     optimal['end_dt'].day,
-                                                     optimal['end_dt'].hour,
-                                                     optimal['end_dt'].minute)
+            # total optim cost from logistic
+            optLogisticCostValue = optimal['total cost']
 
-                # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
-                if type(optimal['depart_dt']) == dict:
-                    dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_replace']
-                    dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_retrieve']
-                else:
-                    dummy__departOpDate = optimal['depart_dt']
-
-                self.__departOpDate = datetime.datetime(
-                                                    dummy__departOpDate.year,
-                                                    dummy__departOpDate.month,
-                                                    dummy__departOpDate.day,
-                                                    dummy__departOpDate.hour,
-                                                    dummy__departOpDate.minute)
-
-                # total optim cost from logistic
-                optLogisticCostValue = optimal['total cost']
-
-                # Calculation of total action time (hour)
-                # Error in logistic, Therefore calculation in WP6
+            # Calculation of total action time (hour)
+            # Error in logistic, Therefore calculation in WP6
 #                secs = (self.__endOpDate - self.__departOpDate).total_seconds()
 #                self.__totalSeaTimeHour = secs // 3600
 #                optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-                self.__totalSeaTimeHour = optimal['schedule sea time']
+            self.__totalSeaTimeHour = optimal['schedule sea time']
+            
+            operation_time = optimal['schedule sea operation time']
+            transit_time = optimal['schedule sea transit time']
+            
+            operation_action_date = self.__departOpDate + \
+                                    datetime.timedelta(hours=transit_time)
+                                    
+            if np.isnan(operation_time):
                 
-                operation_time = optimal['schedule sea operation time']
-                transit_time = optimal['schedule sea transit time']
-                
-                operation_action_date = self.__departOpDate + \
-                                        datetime.timedelta(hours=transit_time)
-                                        
-                if np.isnan(operation_time):
-                    
-                    errStr = "Operation time is NaN"
-                    raise RuntimeError(errStr)
-                
-                totalDownTimeHours = operation_time
-                
-                (omCostValueSpare,
-                 omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
+                errStr = "Operation time is NaN"
+                raise RuntimeError(errStr)
+            
+            totalDownTimeHours = operation_time
+            
+            (omCostValueSpare,
+             omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
             logisticcost = round(optLogisticCostValue / float(blockNumber), 2)
             omcost = round(omCostValue, 2)
@@ -4045,10 +4019,7 @@ class LCOE_Calculator(object):
                 print 'WP6: ErrorID = NoSolutionsFound!'
                 print 'WP6: values = ', values
 
-            return (loop,
-                    loopValuesForOutput_UnCoMa,
-                    flagCalcCoBaMa,
-                    flagCalcUnCoMa)
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
         if self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
 
@@ -4056,78 +4027,61 @@ class LCOE_Calculator(object):
                 print 'WP6: ErrorID = NoWeatherWindowFound!'
                 print 'WP6: values = ', values
 
-            if self.__ignoreWeatherWindow:
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
-                secs = (self.__endOperationDate- failureEvents).total_seconds()
+        optimal = self.__om_logistic['optimal']
 
-                optLogisticCostValue = 0
-                omCostValueSpare     = 0
-                omCostValue          = 0
-                totalDownTimeHours   = secs // 3600
-                self.__departOpDate  = self.__endOperationDate
+        self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
+                                             optimal['end_dt'].month,
+                                             optimal['end_dt'].day,
+                                             optimal['end_dt'].hour,
+                                             optimal['end_dt'].minute)
 
-            else:
-
-                return (loop,
-                        loopValuesForOutput_UnCoMa,
-                        flagCalcCoBaMa,
-                        flagCalcUnCoMa)
-
+        # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
+        if type(optimal['depart_dt']) == dict:
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_replace']
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_retrieve']
         else:
+            dummy__departOpDate = optimal['depart_dt']
 
-            optimal = self.__om_logistic['optimal']
+        self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
+                                                dummy__departOpDate.month,
+                                                dummy__departOpDate.day,
+                                                dummy__departOpDate.hour,
+                                                dummy__departOpDate.minute)
 
-            self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
-                                                 optimal['end_dt'].month,
-                                                 optimal['end_dt'].day,
-                                                 optimal['end_dt'].hour,
-                                                 optimal['end_dt'].minute)
+        # total optim cost from logistic
+        optLogisticCostValue = optimal['total cost']
 
-            # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
-            if type(optimal['depart_dt']) == dict:
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_replace']
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_retrieve']
-            else:
-                dummy__departOpDate = optimal['depart_dt']
+        # should the next operation be shifted? Check self.__repairTable
+        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
 
-            self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
-                                                    dummy__departOpDate.month,
-                                                    dummy__departOpDate.day,
-                                                    dummy__departOpDate.hour,
-                                                    dummy__departOpDate.minute)
+            nidx = self.__actIdxOfUnCoMa + 1
+            secs = (self.__UnCoMa_eventsTable.repairActionEvents[nidx] -
+                                        self.__endOpDate).total_seconds()
 
-            # total optim cost from logistic
-            optLogisticCostValue = optimal['total cost']
+            self.__actActionDelayHour = secs // 3600
+            self.__totalActionDelayHour = self.__totalActionDelayHour + \
+                                                self.__actActionDelayHour
 
-            # should the next operation be shifted? Check self.__repairTable
-            if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
-
-                nidx = self.__actIdxOfUnCoMa + 1
-                secs = (self.__UnCoMa_eventsTable.repairActionEvents[nidx] -
-                                            self.__endOpDate).total_seconds()
-
-                self.__actActionDelayHour = secs // 3600
-                self.__totalActionDelayHour = self.__totalActionDelayHour + \
-                                                    self.__actActionDelayHour
-
-            # Calculation of total action time (hour)
-            # Error in logistic, Therefore calculation in WP6
+        # Calculation of total action time (hour)
+        # Error in logistic, Therefore calculation in WP6
 #            secs = (self.__endOpDate - self.__departOpDate).total_seconds()
 #            self.__totalSeaTimeHour = secs // 3600
 #            optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-            self.__totalSeaTimeHour = optimal['schedule sea time']
+        self.__totalSeaTimeHour = optimal['schedule sea time']
 
-            secs = (self.__endOpDate - failureDate).total_seconds()
-            totalDownTimeHours = secs // 3600
-            
-            totalWaitingTimeHours = totalDownTimeHours - \
-                                                    self.__totalSeaTimeHour
+        secs = (self.__endOpDate - failureDate).total_seconds()
+        totalDownTimeHours = secs // 3600
+        
+        totalWaitingTimeHours = totalDownTimeHours - \
+                                                self.__totalSeaTimeHour
 
-            (omCostValueSpare,
-             omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
+        (omCostValueSpare,
+         omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
         # Save the cost of operation
         logisticcost = round(optLogisticCostValue, 2)
@@ -4163,7 +4117,7 @@ class LCOE_Calculator(object):
                 
                 continue
 
-            if self.__ignoreWeatherWindow:
+            if self.__curtailDevices:
                 self.__arrayDict[keys[iCnt1]]['UnCoMaNoWeatherWindow'] = True
                 self.__NrOfTurnOffDevices = self.__NrOfTurnOffDevices + 1
 
@@ -4573,189 +4527,11 @@ class LCOE_Calculator(object):
 
     def __postCalculation(self):
 
-        '''__postCalculation function: some post calculations
+        """Return environmental assessment, event tables, OPEX, downtime and
+        energy metrics.
+        """
 
-        '''
-
-        # Calculation of the
-        # self.__outputsOfWP6['lcoeOfArray [Euro/KWh]']
-        # self.__outputsOfWP6['annualEnergyOfDevices [Wh]']
-        # self.__outputsOfWP6['annualDownTimeOfDevices [h]']
-        # self.__outputsOfWP6['annualEnergyOfArray [Wh]']
-        # self.__outputsOfWP6['annualCapexOfArray [Euro]']
-        # self.__outputsOfWP6['annualOpexOfArray [Euro]']
-
-        dummyOpexAll = 0
-        dummyEnergyAll = 0
-        dummyDownTime = 0
-
-        keys = self.__arrayDict.keys()
-
-        for iCnt in range(0, len(keys)):
-
-            arraycomp = self.__arrayDict[keys[iCnt]]
-
-            # calculation of Opex
-            logic = ('Hydrodynamic' in keys[iCnt] or
-                     'Pto' in keys[iCnt] or
-                     'Control' in keys[iCnt] or
-                     'Support structure' in keys[iCnt] or
-                     'Mooring line' in keys[iCnt] or
-                     'Foundation' in keys[iCnt] or
-                     'Dynamic cable' in keys[iCnt] or
-                     'Array elec sub-system' in keys[iCnt])
-
-            # OPEX of the all components of array and all devices
-            if not logic:
-
-                # corrective_maintenance
-                if self.__Farm_OM['corrective_maintenance'] == True:
-
-                    x = len(arraycomp['UnCoMaCostOM'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['UnCoMaCostOM'][iCnt1]
-
-                    x = len(arraycomp['UnCoMaCostLogistic'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['UnCoMaCostLogistic'][iCnt1]
-
-                # condition_based_maintenance
-                if self.__Farm_OM['condition_based_maintenance'] == True:
-
-                    x = len(arraycomp['CoBaMaCostOM'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CoBaMaCostOM'][iCnt1]
-
-                    x = len(arraycomp['CoBaMaCostLogistic'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CoBaMaCostLogistic'][iCnt1]
-
-                # calendar_based_maintenance
-                if self.__Farm_OM['calendar_based_maintenance'] == True:
-
-                    x = len(arraycomp['CaBaMaCostOM'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CaBaMaCostOM'][iCnt1]
-
-                    x = len(arraycomp['CaBaMaCostLogistic'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CaBaMaCostLogistic'][iCnt1]
-
-            # calculation of downtime
-            if 'device' in keys[iCnt]:
-
-                dummyDownTime = 0
-
-                # corrective_maintenance
-                if self.__Farm_OM['corrective_maintenance'] == True:
-
-                    x = len(arraycomp['UnCoMaOpEventsDuration'])
-
-                    for iCnt1 in range(0, x):
-                        dummyDownTime = dummyDownTime + \
-                            arraycomp['UnCoMaOpEventsDuration'][iCnt1]
-
-                # condition_based_maintenance
-                if self.__Farm_OM['condition_based_maintenance'] == True:
-
-                    x = len(arraycomp['CoBaMaOpEventsDuration'])
-
-                    for iCnt1 in range(0, x):
-                        dummyDownTime = dummyDownTime + \
-                            arraycomp['CoBaMaOpEventsDuration'][iCnt1]
-
-                # calendar_based_maintenance
-                if self.__Farm_OM['calendar_based_maintenance'] == True:
-
-                    x = len(arraycomp['CaBaMaOpEventsDuration'])
-
-                    for iCnt1 in range(0, x):
-                        dummyDownTime = dummyDownTime + \
-                            arraycomp['CaBaMaOpEventsDuration'][iCnt1]
-
-                self.__arrayDict[keys[iCnt]]['DownTime'] = dummyDownTime
-
-                powerWP2 = float(arraycomp['AnnualEnergyWP2']) / \
-                                        (self.__dayHours * self.__yearDays)
-
-                deviceOperationTime = self.__operationTimeDay * \
-                                            self.__dayHours - dummyDownTime
-                # for missionTime [year]
-                energyPerDevice = powerWP2 * deviceOperationTime
-
-                if self.__operationTimeYear != 0:
-                    deviceenergy = float(energyPerDevice) / \
-                                                    self.__operationTimeYear
-                else:
-                    deviceenergy = 0.0
-
-                self.__arrayDict[keys[iCnt]]['AnnualEnergyWP6'] = deviceenergy
-
-                index = int(keys[iCnt].rsplit('device')[1]) - 1
-
-                # list -> Annual energy of each devices [Wh]
-                deviceenergy = round(deviceenergy, 0)
-                self.__outputsOfWP6[
-                        'annualEnergyOfDevices [Wh]'][index] = deviceenergy
-
-                # list -> annualDownTimeOfDevices [h]
-                if self.__operationTimeYear != 0:
-                    downtime = float(dummyDownTime) / self.__operationTimeYear
-                    downtime = round(downtime, 0)
-                else:
-                    downtime = 0.0
-
-                self.__outputsOfWP6[
-                            'annualDownTimeOfDevices [h]'][index] = downtime
-
-                dummyEnergyAll = dummyEnergyAll + energyPerDevice
-
-        # float -> Annual energy of array [Wh]
-        if self.__operationTimeYear != 0:
-            arrayenergy = float(dummyEnergyAll) / self.__operationTimeYear
-        else:
-            arrayenergy = 0.0
-
-        # float -> Annual OPEX of array in case of condition based maintenance
-        # strategy [Euro]
-        if self.__operationTimeYear != 0:
-            arrayopex = float(dummyOpexAll) / self.__operationTimeYear
-        else:
-            arrayopex = 0.0
-
-        # float -> Annual CAPEX of array in case of condition based maintenance strategy [Euro]
-        arraycapex = round(self.__outputsOfWP6['CapexOfArray [Euro]'], 1)
-
-        # LCOE of array [Euro/kWh]
-        if not np.isclose(arrayenergy, 0):
-            arraylcoe = arrayopex / arrayenergy / 1000.0
-        else:
-            arraylcoe = 0.0
-
-        # Round the outcomes
-        arrayenergy = round(arrayenergy, 0)
-        arrayopex = round(arrayopex, 2)
-        arraycapex = round(arraycapex, 2)
-        arraylcoe = round(arraylcoe, 4)
-
-        self.__outputsOfWP6['annualEnergyOfArray [Wh]'] = arrayenergy
-        self.__outputsOfWP6['annualOpexOfArray [Euro]'] = arrayopex
-        self.__outputsOfWP6['CapexOfArray [Euro]'] = arraycapex
-        self.__outputsOfWP6['lcoeOfArray [Euro/KWh]'] = arraylcoe
-
-        # Pandas series -> Signals for environmental assessment.
+        # Data for environmental assessment.
         if self.__Farm_OM['corrective_maintenance'] == True:
             self.__outputsOfWP6['env_assess [-]']['UnCoMa_eventsTable'] = \
                                         pd.Series(self.__UnCoMa_dictEnvAssess)
@@ -4768,12 +4544,68 @@ class LCOE_Calculator(object):
             self.__outputsOfWP6['env_assess [-]']['CoBaMa_eventsTable'] = \
                                         pd.Series(self.__CoBaMa_dictEnvAssess)
 
-        # for maintenance plans
-        self.__outputsOfWP6['eventTables [-]'][
-                'UnCoMa_eventsTable'] = self.__UnCoMa_outputEventsTable
-        self.__outputsOfWP6['eventTables [-]'][
-                'CoBaMa_eventsTable'] = self.__CoBaMa_outputEventsTable
-        self.__outputsOfWP6['eventTables [-]'][
-                'CaBaMa_eventsTable'] = self.__CaBaMa_outputEventsTable
+        # Events tables
+        events_tables_dict = {}
+        
+        events_tables_dict['UnCoMa_eventsTable'] = \
+                                            self.__UnCoMa_outputEventsTable
+        events_tables_dict['CoBaMa_eventsTable'] = \
+                                            self.__CoBaMa_outputEventsTable
+        events_tables_dict['CaBaMa_eventsTable'] = \
+                                            self.__CaBaMa_outputEventsTable
+                
+        self.__outputsOfWP6['eventTables [-]'] = events_tables_dict
+            
+        start_date = self.__Simu_Param['startProjectDate']
+        commissioning_date = self.__Simu_Param['startOperationDate']
+        mission_time = self.__Simu_Param['missionTime']
+        power_per_device = self.__Simu_Param['power_prod_perD']
+        device_ids = power_per_device.keys()
+            
+        # Operations costs per year
+        opex_per_year = get_opex_per_year(start_date,
+                                          commissioning_date,
+                                          mission_time,
+                                          events_tables_dict)
+        
+        opex_costs = opex_per_year.set_index("Year")
+        lifetime_opex = opex_costs.sum()[0]
+        
+        # Availablity
+        uptime_df = get_uptime_df(commissioning_date,
+                                  mission_time,
+                                  device_ids,
+                                  events_tables_dict)
+        availability = Availability(uptime_df)
+        
+        array_downtime = availability.get_array_downtime()
+        array_availability = availability.get_array_availability()
+        downtime_per_device = availability.get_downtime_per_device(device_ids)
+        
+        # Energy
+        device_energy_df = get_device_energy_df(uptime_df,
+                                                device_ids,
+                                                power_per_device)
+        energy = Energy(device_energy_df)
+        dev_energy_series = energy.get_device_energy_series()
+        
+        lifetime_energy = dev_energy_series["Energy"]
+        energy_per_device = energy.get_energy_per_device(device_ids)
+        energy_per_year = energy.get_project_energy_df(start_date,
+                                                       commissioning_date,
+                                                       mission_time)
+        
+        # Journeys
+        n_journeys = get_number_of_journeys(events_tables_dict)
+        
+        self.__outputsOfWP6["lifetimeOpex [Euro]"] = lifetime_opex
+        self.__outputsOfWP6["lifetimeEnergy [Wh]"] = lifetime_energy
+        self.__outputsOfWP6["arrayDowntime [hour]"] = array_downtime
+        self.__outputsOfWP6["arrayAvailability [-]"] = array_availability
+        self.__outputsOfWP6["numberOfJourneys [-]"] = n_journeys
+        self.__outputsOfWP6["OpexPerYear [Euro]"] = opex_per_year
+        self.__outputsOfWP6["energyPerYear [Wh]"] = energy_per_year
+        self.__outputsOfWP6["downtimePerDevice [hour]"] = downtime_per_device
+        self.__outputsOfWP6["energyPerDevice [Wh]"] = energy_per_device
 
         return
