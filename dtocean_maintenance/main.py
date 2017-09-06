@@ -2572,17 +2572,13 @@ class LCOE_Calculator(object):
             if self.__dtocean_maintenance_PRINT_FLAG == True:
                 print 'calcCoBaMa: Simulation Duration [s]: ' + str(duration)
 
-            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
-        if (self.__om_logistic['findSolution'] == 'NoWeatherWindowFound' and
-            not self.__ignoreWeatherWindow):
+        if self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
 
             if self.__dtocean_maintenance_PRINT_FLAG == True:
                 print 'WP6: ErrorID = NoWeatherWindowFound!'
                 print 'WP6: values = ', values
-
-            # increase the index
-            self.__actIdxOfCoBaMa = self.__actIdxOfCoBaMa + 1
 
             # time consumption CaBaMa
             stop_time_CoBaMa = timeit.default_timer()
@@ -2592,48 +2588,35 @@ class LCOE_Calculator(object):
             if self.__dtocean_maintenance_PRINT_FLAG == True:
                 print 'calcCoBaMa: Simulation Duration [s]: ' + str(duration)
 
-            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
         CaBaMaSolution = False
 
-        if self.__ignoreWeatherWindow:
+        optimal = self.__om_logistic['optimal']
 
-            downtimesecs = (self.__endOperationDate -
-                                                failureDate).total_seconds()
+        self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
+                                             optimal['end_dt'].month,
+                                             optimal['end_dt'].day,
+                                             optimal['end_dt'].hour,
+                                             optimal['end_dt'].minute)
 
-            optLogisticCostValue = 0
-            omCostValueSpare = 0
-            omCostValue = 0
-            totalDownTimeHours = downtimesecs // 3600
-            self.__departOpDate = self.__endOperationDate
-
+        # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
+        if type(optimal['depart_dt']) == dict:
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_replace']
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_retrieve']
         else:
+            dummy__departOpDate = optimal['depart_dt']
 
-            optimal = self.__om_logistic['optimal']
+        self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
+                                                dummy__departOpDate.month,
+                                                dummy__departOpDate.day,
+                                                dummy__departOpDate.hour,
+                                                dummy__departOpDate.minute)
 
-            self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
-                                                 optimal['end_dt'].month,
-                                                 optimal['end_dt'].day,
-                                                 optimal['end_dt'].hour,
-                                                 optimal['end_dt'].minute)
-
-            # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
-            if type(optimal['depart_dt']) == dict:
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_replace']
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_retrieve']
-            else:
-                dummy__departOpDate = optimal['depart_dt']
-
-            self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
-                                                    dummy__departOpDate.month,
-                                                    dummy__departOpDate.day,
-                                                    dummy__departOpDate.hour,
-                                                    dummy__departOpDate.minute)
-
-            # total optim cost from logistic
-            optLogisticCostValue = optimal['total cost']
+        # total optim cost from logistic
+        optLogisticCostValue = optimal['total cost']
 
 #            # Override logistics
 #            opsecs = (self.__endOpDate - self.__departOpDate).total_seconds()
@@ -2641,74 +2624,74 @@ class LCOE_Calculator(object):
 #
 #            optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-            self.__totalSeaTimeHour = optimal['schedule sea time']
+        self.__totalSeaTimeHour = optimal['schedule sea time']
 
-            downsecs = (self.__endOpDate - currentEndDate).total_seconds()
-            totalDownTimeHours = downsecs // 3600
-            
-            # Avoid negative downtime
-            if totalDownTimeHours < 0: totalDownTimeHours = 0
+        downsecs = (self.__endOpDate - currentEndDate).total_seconds()
+        totalDownTimeHours = downsecs // 3600
+        
+        # Avoid negative downtime
+        if totalDownTimeHours < 0: totalDownTimeHours = 0
 
-            (omCostValueSpare,
-             omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
+        (omCostValueSpare,
+         omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
-            totalCostCoBaMa = optLogisticCostValue + omCostValue
+        totalCostCoBaMa = optLogisticCostValue + omCostValue
 
-            # Is there a calandar based maintenance for this Component ID in
-            # near future
-            if (flagCaBaMa == True or
-                (flagCaBaMa == False and
-                     self.__Farm_OM['calendar_based_maintenance'] == True)):
+        # Is there a calandar based maintenance for this Component ID in
+        # near future
+        if (flagCaBaMa == True or
+            (flagCaBaMa == False and
+                 self.__Farm_OM['calendar_based_maintenance'] == True)):
 
-                # find the blocks in CaBaMa
-                if 'device' in ComponentType:
-                    if flagCaBaMa == True:
-                        CaBaMaTableQueryDeviceID  = ComponentType
-                    else:
-                        CaBaMaTableQueryDeviceID  = ComponentType[0:-3]
-
-                    CaBaMaTableQuerySubSystem = ComponentSubType
-
-                elif 'subhub' in ComponentType:
-                    if flagCaBaMa == True:
-                        CaBaMaTableQueryDeviceID = ComponentType
-                    else:
-                        CaBaMaTableQueryDeviceID = ComponentType[0:-3]
+            # find the blocks in CaBaMa
+            if 'device' in ComponentType:
+                if flagCaBaMa == True:
+                    CaBaMaTableQueryDeviceID  = ComponentType
                 else:
-                    CaBaMaTableQueryDeviceID  = 'Array'
-                    CaBaMaTableQuerySubSystem = ComponentType[0:-3]
+                    CaBaMaTableQueryDeviceID  = ComponentType[0:-3]
 
-                if 'subhub' in ComponentType:
+                CaBaMaTableQuerySubSystem = ComponentSubType
 
-                    dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
-                            (self.__CaBaMa_eventsTable['ComponentType'] == \
-                                                CaBaMaTableQueryDeviceID) & \
-                            (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
-                            (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
-
+            elif 'subhub' in ComponentType:
+                if flagCaBaMa == True:
+                    CaBaMaTableQueryDeviceID = ComponentType
                 else:
+                    CaBaMaTableQueryDeviceID = ComponentType[0:-3]
+            else:
+                CaBaMaTableQueryDeviceID  = 'Array'
+                CaBaMaTableQuerySubSystem = ComponentType[0:-3]
 
-                    dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
-                        (self.__CaBaMa_eventsTable['RA_ID'] == RA_ID) & \
-                        (self.__CaBaMa_eventsTable['ComponentSubType'] == \
-                                           CaBaMaTableQuerySubSystem) & \
-                         (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
-                         (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+            if 'subhub' in ComponentType:
 
-                indexDummyCaBaMaTable = 0
+                dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
+                        (self.__CaBaMa_eventsTable['ComponentType'] == \
+                                            CaBaMaTableQueryDeviceID) & \
+                        (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
+                        (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
 
-                # currently only for device. The components of the array will
-                # be repaired immediately
-                if 1 < len(dummyCaBaMaTable) and 'device' in ComponentType:
+            else:
 
-                    (CaBaMaSolution,
-                     dummyCaBaMaEndDate) = self.__switch_to_calendar(
-                                                             CaBaMaSolution,
-                                                             dummyCaBaMaTable,
-                                                             ComponentID,
-                                                             currentAlarmDate,
-                                                             currentEndDate,
-                                                             totalCostCoBaMa)
+                dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
+                    (self.__CaBaMa_eventsTable['RA_ID'] == RA_ID) & \
+                    (self.__CaBaMa_eventsTable['ComponentSubType'] == \
+                                       CaBaMaTableQuerySubSystem) & \
+                     (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
+                     (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+
+            indexDummyCaBaMaTable = 0
+
+            # currently only for device. The components of the array will
+            # be repaired immediately
+            if 1 < len(dummyCaBaMaTable) and 'device' in ComponentType:
+
+                (CaBaMaSolution,
+                 dummyCaBaMaEndDate) = self.__switch_to_calendar(
+                                                         CaBaMaSolution,
+                                                         dummyCaBaMaTable,
+                                                         ComponentID,
+                                                         currentAlarmDate,
+                                                         currentEndDate,
+                                                         totalCostCoBaMa)
 
         if CaBaMaSolution == True:
 
@@ -2890,7 +2873,7 @@ class LCOE_Calculator(object):
                     
                     continue
 
-                if self.__ignoreWeatherWindow:
+                if self.__curtailDevices:
 
                     self.__arrayDict[keys[iCnt1]][
                                             'CoBaMaNoWeatherWindow'] = True
@@ -3433,67 +3416,59 @@ class LCOE_Calculator(object):
 
                     if flag == 'NoWeatherWindowFound':
                          print 'WP6: ErrorID = NoWeatherWindowFound!'
-
-                optLogisticCostValue = 0
-                omCostValue = 0
-                totalDownTimeHours = 0
-                operation_action_date = currentStartActionDate
-                self.__endOpDate = currentStartActionDate
                 
                 raise RuntimeError(self.__om_logistic['findSolution'])
 
+            optimal = self.__om_logistic['optimal']
+
+            self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
+                                                 optimal['end_dt'].month,
+                                                 optimal['end_dt'].day,
+                                                 optimal['end_dt'].hour,
+                                                 optimal['end_dt'].minute)
+
+            # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
+            if type(optimal['depart_dt']) == dict:
+                dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_replace']
+                dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_retrieve']
             else:
+                dummy__departOpDate = optimal['depart_dt']
 
-                optimal = self.__om_logistic['optimal']
+            self.__departOpDate = datetime.datetime(
+                                                dummy__departOpDate.year,
+                                                dummy__departOpDate.month,
+                                                dummy__departOpDate.day,
+                                                dummy__departOpDate.hour,
+                                                dummy__departOpDate.minute)
 
-                self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
-                                                     optimal['end_dt'].month,
-                                                     optimal['end_dt'].day,
-                                                     optimal['end_dt'].hour,
-                                                     optimal['end_dt'].minute)
+            # total optim cost from logistic
+            optLogisticCostValue = optimal['total cost']
 
-                # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
-                if type(optimal['depart_dt']) == dict:
-                    dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_replace']
-                    dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_retrieve']
-                else:
-                    dummy__departOpDate = optimal['depart_dt']
-
-                self.__departOpDate = datetime.datetime(
-                                                    dummy__departOpDate.year,
-                                                    dummy__departOpDate.month,
-                                                    dummy__departOpDate.day,
-                                                    dummy__departOpDate.hour,
-                                                    dummy__departOpDate.minute)
-
-                # total optim cost from logistic
-                optLogisticCostValue = optimal['total cost']
-
-                # Calculation of total action time (hour)
-                # Error in logistic, Therefore calculation in WP6
+            # Calculation of total action time (hour)
+            # Error in logistic, Therefore calculation in WP6
 #                secs = (self.__endOpDate - self.__departOpDate).total_seconds()
 #                self.__totalSeaTimeHour = secs // 3600
 #                optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-                self.__totalSeaTimeHour = optimal['schedule sea time']
+            self.__totalSeaTimeHour = optimal['schedule sea time']
+            
+            operation_time = optimal['schedule sea operation time']
+            transit_time = optimal['schedule sea transit time']
+            
+            operation_action_date = self.__departOpDate + \
+                                    datetime.timedelta(hours=transit_time)
+                                    
+            if np.isnan(operation_time):
                 
-                operation_time = optimal['schedule sea operation time']
-                transit_time = optimal['schedule sea transit time']
-                
-                operation_action_date = self.__departOpDate + \
-                                        datetime.timedelta(hours=transit_time)
-                                        
-                if np.isnan(operation_time):
-                    
-                    errStr = "Operation time is NaN"
-                    raise RuntimeError(errStr)
-                
-                totalDownTimeHours = operation_time
-                
-                (omCostValueSpare,
-                 omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
+                errStr = "Operation time is NaN"
+                raise RuntimeError(errStr)
+            
+            totalDownTimeHours = operation_time
+            
+            (omCostValueSpare,
+             omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
             logisticcost = round(optLogisticCostValue / float(blockNumber), 2)
             omcost = round(omCostValue, 2)
@@ -4003,10 +3978,7 @@ class LCOE_Calculator(object):
                 print 'WP6: ErrorID = NoSolutionsFound!'
                 print 'WP6: values = ', values
 
-            return (loop,
-                    loopValuesForOutput_UnCoMa,
-                    flagCalcCoBaMa,
-                    flagCalcUnCoMa)
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
         if self.__om_logistic['findSolution'] == 'NoWeatherWindowFound':
 
@@ -4014,78 +3986,61 @@ class LCOE_Calculator(object):
                 print 'WP6: ErrorID = NoWeatherWindowFound!'
                 print 'WP6: values = ', values
 
-            if self.__ignoreWeatherWindow:
+            raise RuntimeError(self.__om_logistic['findSolution'])
 
-                secs = (self.__endOperationDate- failureEvents).total_seconds()
+        optimal = self.__om_logistic['optimal']
 
-                optLogisticCostValue = 0
-                omCostValueSpare     = 0
-                omCostValue          = 0
-                totalDownTimeHours   = secs // 3600
-                self.__departOpDate  = self.__endOperationDate
+        self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
+                                             optimal['end_dt'].month,
+                                             optimal['end_dt'].day,
+                                             optimal['end_dt'].hour,
+                                             optimal['end_dt'].minute)
 
-            else:
-
-                return (loop,
-                        loopValuesForOutput_UnCoMa,
-                        flagCalcCoBaMa,
-                        flagCalcUnCoMa)
-
+        # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
+        if type(optimal['depart_dt']) == dict:
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_replace']
+            dummy__departOpDate = optimal['depart_dt'][
+                                    'weather windows depart_dt_retrieve']
         else:
+            dummy__departOpDate = optimal['depart_dt']
 
-            optimal = self.__om_logistic['optimal']
+        self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
+                                                dummy__departOpDate.month,
+                                                dummy__departOpDate.day,
+                                                dummy__departOpDate.hour,
+                                                dummy__departOpDate.minute)
 
-            self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
-                                                 optimal['end_dt'].month,
-                                                 optimal['end_dt'].day,
-                                                 optimal['end_dt'].hour,
-                                                 optimal['end_dt'].minute)
+        # total optim cost from logistic
+        optLogisticCostValue = optimal['total cost']
 
-            # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
-            if type(optimal['depart_dt']) == dict:
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_replace']
-                dummy__departOpDate = optimal['depart_dt'][
-                                        'weather windows depart_dt_retrieve']
-            else:
-                dummy__departOpDate = optimal['depart_dt']
+        # should the next operation be shifted? Check self.__repairTable
+        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
 
-            self.__departOpDate = datetime.datetime(dummy__departOpDate.year,
-                                                    dummy__departOpDate.month,
-                                                    dummy__departOpDate.day,
-                                                    dummy__departOpDate.hour,
-                                                    dummy__departOpDate.minute)
+            nidx = self.__actIdxOfUnCoMa + 1
+            secs = (self.__UnCoMa_eventsTable.repairActionEvents[nidx] -
+                                        self.__endOpDate).total_seconds()
 
-            # total optim cost from logistic
-            optLogisticCostValue = optimal['total cost']
+            self.__actActionDelayHour = secs // 3600
+            self.__totalActionDelayHour = self.__totalActionDelayHour + \
+                                                self.__actActionDelayHour
 
-            # should the next operation be shifted? Check self.__repairTable
-            if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
-
-                nidx = self.__actIdxOfUnCoMa + 1
-                secs = (self.__UnCoMa_eventsTable.repairActionEvents[nidx] -
-                                            self.__endOpDate).total_seconds()
-
-                self.__actActionDelayHour = secs // 3600
-                self.__totalActionDelayHour = self.__totalActionDelayHour + \
-                                                    self.__actActionDelayHour
-
-            # Calculation of total action time (hour)
-            # Error in logistic, Therefore calculation in WP6
+        # Calculation of total action time (hour)
+        # Error in logistic, Therefore calculation in WP6
 #            secs = (self.__endOpDate - self.__departOpDate).total_seconds()
 #            self.__totalSeaTimeHour = secs // 3600
 #            optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-            self.__totalSeaTimeHour = optimal['schedule sea time']
+        self.__totalSeaTimeHour = optimal['schedule sea time']
 
-            secs = (self.__endOpDate - failureDate).total_seconds()
-            totalDownTimeHours = secs // 3600
-            
-            totalWaitingTimeHours = totalDownTimeHours - \
-                                                    self.__totalSeaTimeHour
+        secs = (self.__endOpDate - failureDate).total_seconds()
+        totalDownTimeHours = secs // 3600
+        
+        totalWaitingTimeHours = totalDownTimeHours - \
+                                                self.__totalSeaTimeHour
 
-            (omCostValueSpare,
-             omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
+        (omCostValueSpare,
+         omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
         # Save the cost of operation
         logisticcost = round(optLogisticCostValue, 2)
@@ -4121,7 +4076,7 @@ class LCOE_Calculator(object):
                 
                 continue
 
-            if self.__ignoreWeatherWindow:
+            if self.__curtailDevices:
                 self.__arrayDict[keys[iCnt1]]['UnCoMaNoWeatherWindow'] = True
                 self.__NrOfTurnOffDevices = self.__NrOfTurnOffDevices + 1
 
