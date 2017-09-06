@@ -760,7 +760,13 @@ class LCOE_Calculator(object):
 
         #######################################################################
         # start: Declaration of outputs of WP6
+        
         self.__outputsOfWP6 = {}
+        
+        # Information about error (-) [-]
+        self.__outputsOfWP6['error [-]'] = None
+        
+        # Environmental Assessment
         self.__outputsOfWP6['env_assess [-]'] = {}
         self.__outputsOfWP6['env_assess [-]']['UnCoMa_eventsTable'] = {}
         self.__outputsOfWP6['env_assess [-]']['CaBaMa_eventsTable'] = {}
@@ -772,19 +778,6 @@ class LCOE_Calculator(object):
 
         # for maintenance plans in WP6
         self.__outputsOfWP6['eventTables [-]'] = {}
-
-        # LCOE of array (float) [Euro/KWh]
-        self.__outputsOfWP6['lcoeOfArray [Euro/KWh]'] = 0
-
-        # Annual energy of each devices (list of float) [Wh]
-        self.__outputsOfWP6['annualEnergyOfDevices [Wh]'] = []
-
-        # Annual down time of each devices (list of float) [h]
-        self.__outputsOfWP6['annualDownTimeOfDevices [h]'] = []
-
-        # Annual energy of array (float) [Wh]
-        self.__outputsOfWP6['annualEnergyOfArray [Wh]'] = 0
-
 
         # CAPEX of array in case of condition based maintenance strategy
         # (float) [Euro]
@@ -808,16 +801,16 @@ class LCOE_Calculator(object):
                     self.__outputsOfWP6['CapexOfArray [Euro]'] = \
                         self.__outputsOfWP6['CapexOfArray [Euro]'] + \
                             capex_condition
-
-        # Annual OPEX of array (float) [Euro]
-        self.__outputsOfWP6['annualOpexOfArray [Euro]'] = 0
-
-        # Information about error (-) [-]
-        self.__outputsOfWP6['error [-]'] = None
-
-        for iCnt in range(0,self.__NrOfDevices):
-            self.__outputsOfWP6['annualEnergyOfDevices [Wh]'].append(0.0)
-            self.__outputsOfWP6['annualDownTimeOfDevices [h]'].append(0.0)
+                            
+        # Other metrics
+        self.__outputsOfWP6["lifetimeOpex [Euro]"] = None
+        self.__outputsOfWP6["lifetimeEnergy [W]"] = None
+        self.__outputsOfWP6["arrayDowntime [hour]"] = None
+        self.__outputsOfWP6["arrayAvailability [-]"] = None
+        self.__outputsOfWP6["downtimePerDevice [hour]"] = None
+        self.__outputsOfWP6["energyPerDevice [W]"] = None
+        self.__outputsOfWP6["energyPerYear [W]"] = None
+        self.__outputsOfWP6["numberOfJourneys [-]"] = None
 
         # end: Declaration of outputs of WP6
         #######################################################################
@@ -1275,7 +1268,7 @@ class LCOE_Calculator(object):
         # Execution of functions for the calculation of LCOE
         self.executeCalc()
 
-        return
+        return self.__outputsOfWP6
 
     def executeCalc(self):
 
@@ -4486,189 +4479,11 @@ class LCOE_Calculator(object):
 
     def __postCalculation(self):
 
-        '''__postCalculation function: some post calculations
+        """Return environmental assessment, event tables, OPEX, downtime and
+        energy metrics.
+        """
 
-        '''
-
-        # Calculation of the
-        # self.__outputsOfWP6['lcoeOfArray [Euro/KWh]']
-        # self.__outputsOfWP6['annualEnergyOfDevices [Wh]']
-        # self.__outputsOfWP6['annualDownTimeOfDevices [h]']
-        # self.__outputsOfWP6['annualEnergyOfArray [Wh]']
-        # self.__outputsOfWP6['annualCapexOfArray [Euro]']
-        # self.__outputsOfWP6['annualOpexOfArray [Euro]']
-
-        dummyOpexAll = 0
-        dummyEnergyAll = 0
-        dummyDownTime = 0
-
-        keys = self.__arrayDict.keys()
-
-        for iCnt in range(0, len(keys)):
-
-            arraycomp = self.__arrayDict[keys[iCnt]]
-
-            # calculation of Opex
-            logic = ('Hydrodynamic' in keys[iCnt] or
-                     'Pto' in keys[iCnt] or
-                     'Control' in keys[iCnt] or
-                     'Support structure' in keys[iCnt] or
-                     'Mooring line' in keys[iCnt] or
-                     'Foundation' in keys[iCnt] or
-                     'Dynamic cable' in keys[iCnt] or
-                     'Array elec sub-system' in keys[iCnt])
-
-            # OPEX of the all components of array and all devices
-            if not logic:
-
-                # corrective_maintenance
-                if self.__Farm_OM['corrective_maintenance'] == True:
-
-                    x = len(arraycomp['UnCoMaCostOM'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['UnCoMaCostOM'][iCnt1]
-
-                    x = len(arraycomp['UnCoMaCostLogistic'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['UnCoMaCostLogistic'][iCnt1]
-
-                # condition_based_maintenance
-                if self.__Farm_OM['condition_based_maintenance'] == True:
-
-                    x = len(arraycomp['CoBaMaCostOM'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CoBaMaCostOM'][iCnt1]
-
-                    x = len(arraycomp['CoBaMaCostLogistic'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CoBaMaCostLogistic'][iCnt1]
-
-                # calendar_based_maintenance
-                if self.__Farm_OM['calendar_based_maintenance'] == True:
-
-                    x = len(arraycomp['CaBaMaCostOM'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CaBaMaCostOM'][iCnt1]
-
-                    x = len(arraycomp['CaBaMaCostLogistic'])
-
-                    for iCnt1 in range(0, x):
-                        dummyOpexAll = dummyOpexAll + \
-                            arraycomp['CaBaMaCostLogistic'][iCnt1]
-
-            # calculation of downtime
-            if 'device' in keys[iCnt]:
-
-                dummyDownTime = 0
-
-                # corrective_maintenance
-                if self.__Farm_OM['corrective_maintenance'] == True:
-
-                    x = len(arraycomp['UnCoMaOpEventsDuration'])
-
-                    for iCnt1 in range(0, x):
-                        dummyDownTime = dummyDownTime + \
-                            arraycomp['UnCoMaOpEventsDuration'][iCnt1]
-
-                # condition_based_maintenance
-                if self.__Farm_OM['condition_based_maintenance'] == True:
-
-                    x = len(arraycomp['CoBaMaOpEventsDuration'])
-
-                    for iCnt1 in range(0, x):
-                        dummyDownTime = dummyDownTime + \
-                            arraycomp['CoBaMaOpEventsDuration'][iCnt1]
-
-                # calendar_based_maintenance
-                if self.__Farm_OM['calendar_based_maintenance'] == True:
-
-                    x = len(arraycomp['CaBaMaOpEventsDuration'])
-
-                    for iCnt1 in range(0, x):
-                        dummyDownTime = dummyDownTime + \
-                            arraycomp['CaBaMaOpEventsDuration'][iCnt1]
-
-                self.__arrayDict[keys[iCnt]]['DownTime'] = dummyDownTime
-
-                powerWP2 = float(arraycomp['AnnualEnergyWP2']) / \
-                                        (self.__dayHours * self.__yearDays)
-
-                deviceOperationTime = self.__operationTimeDay * \
-                                            self.__dayHours - dummyDownTime
-                # for missionTime [year]
-                energyPerDevice = powerWP2 * deviceOperationTime
-
-                if self.__operationTimeYear != 0:
-                    deviceenergy = float(energyPerDevice) / \
-                                                    self.__operationTimeYear
-                else:
-                    deviceenergy = 0.0
-
-                self.__arrayDict[keys[iCnt]]['AnnualEnergyWP6'] = deviceenergy
-
-                index = int(keys[iCnt].rsplit('device')[1]) - 1
-
-                # list -> Annual energy of each devices [Wh]
-                deviceenergy = round(deviceenergy, 0)
-                self.__outputsOfWP6[
-                        'annualEnergyOfDevices [Wh]'][index] = deviceenergy
-
-                # list -> annualDownTimeOfDevices [h]
-                if self.__operationTimeYear != 0:
-                    downtime = float(dummyDownTime) / self.__operationTimeYear
-                    downtime = round(downtime, 0)
-                else:
-                    downtime = 0.0
-
-                self.__outputsOfWP6[
-                            'annualDownTimeOfDevices [h]'][index] = downtime
-
-                dummyEnergyAll = dummyEnergyAll + energyPerDevice
-
-        # float -> Annual energy of array [Wh]
-        if self.__operationTimeYear != 0:
-            arrayenergy = float(dummyEnergyAll) / self.__operationTimeYear
-        else:
-            arrayenergy = 0.0
-
-        # float -> Annual OPEX of array in case of condition based maintenance
-        # strategy [Euro]
-        if self.__operationTimeYear != 0:
-            arrayopex = float(dummyOpexAll) / self.__operationTimeYear
-        else:
-            arrayopex = 0.0
-
-        # float -> Annual CAPEX of array in case of condition based maintenance strategy [Euro]
-        arraycapex = round(self.__outputsOfWP6['CapexOfArray [Euro]'], 1)
-
-        # LCOE of array [Euro/kWh]
-        if not np.isclose(arrayenergy, 0):
-            arraylcoe = arrayopex / arrayenergy / 1000.0
-        else:
-            arraylcoe = 0.0
-
-        # Round the outcomes
-        arrayenergy = round(arrayenergy, 0)
-        arrayopex = round(arrayopex, 2)
-        arraycapex = round(arraycapex, 2)
-        arraylcoe = round(arraylcoe, 4)
-
-        self.__outputsOfWP6['annualEnergyOfArray [Wh]'] = arrayenergy
-        self.__outputsOfWP6['annualOpexOfArray [Euro]'] = arrayopex
-        self.__outputsOfWP6['CapexOfArray [Euro]'] = arraycapex
-        self.__outputsOfWP6['lcoeOfArray [Euro/KWh]'] = arraylcoe
-
-        # Pandas series -> Signals for environmental assessment.
+        # Data for environmental assessment.
         if self.__Farm_OM['corrective_maintenance'] == True:
             self.__outputsOfWP6['env_assess [-]']['UnCoMa_eventsTable'] = \
                                         pd.Series(self.__UnCoMa_dictEnvAssess)
@@ -4681,12 +4496,68 @@ class LCOE_Calculator(object):
             self.__outputsOfWP6['env_assess [-]']['CoBaMa_eventsTable'] = \
                                         pd.Series(self.__CoBaMa_dictEnvAssess)
 
-        # for maintenance plans
-        self.__outputsOfWP6['eventTables [-]'][
-                'UnCoMa_eventsTable'] = self.__UnCoMa_outputEventsTable
-        self.__outputsOfWP6['eventTables [-]'][
-                'CoBaMa_eventsTable'] = self.__CoBaMa_outputEventsTable
-        self.__outputsOfWP6['eventTables [-]'][
-                'CaBaMa_eventsTable'] = self.__CaBaMa_outputEventsTable
+        # Events tables
+        events_tables_dict = {}
+        
+        events_tables_dict['UnCoMa_eventsTable'] = \
+                                            self.__UnCoMa_outputEventsTable
+        events_tables_dict['CoBaMa_eventsTable'] = \
+                                            self.__CoBaMa_outputEventsTable
+        events_tables_dict['CaBaMa_eventsTable'] = \
+                                            self.__CaBaMa_outputEventsTable
+                
+        self.__outputsOfWP6['eventTables [-]'] = events_tables_dict
+            
+        start_date = self.__Simu_Param['startProjectDate']
+        commissioning_date = self.__Simu_Param['startOperationDate']
+        mission_time = self.__Simu_Param['missionTime']
+        power_per_device = self.__Simu_Param['power_prod_perD']
+        device_ids = power_per_device.keys()
+            
+        # Operations costs per year
+        opex_per_year = get_opex_per_year(start_date,
+                                          commissioning_date,
+                                          mission_time,
+                                          events_tables_dict)
+        
+        opex_costs = opex_per_year.set_index("Year")
+        lifetime_opex = opex_costs.sum()[0]
+        
+        # Availablity
+        uptime_df = get_uptime_df(commissioning_date,
+                                  mission_time,
+                                  device_ids,
+                                  events_tables_dict)
+        availability = Availability(uptime_df)
+        
+        array_downtime = availability.get_array_downtime()
+        array_availability = availability.get_array_availability()
+        downtime_per_device = availability.get_downtime_per_device(device_ids)
+        
+        # Energy
+        device_energy_df = get_device_energy_df(uptime_df,
+                                                device_ids,
+                                                power_per_device)
+        energy = Energy(device_energy_df)
+        dev_energy_series = energy.get_device_energy_series()
+        
+        lifetime_energy = dev_energy_series["Energy"]
+        energy_per_device = energy.get_energy_per_device(device_ids)
+        energy_per_year = energy.get_project_energy_df(start_date,
+                                                       commissioning_date,
+                                                       mission_time)
+        
+        # Journeys
+        n_journeys = get_number_of_journeys(events_tables_dict)
+        
+        self.__outputsOfWP6["lifetimeOpex [Euro]"] = lifetime_opex
+        self.__outputsOfWP6["lifetimeEnergy [Wh]"] = lifetime_energy
+        self.__outputsOfWP6["arrayDowntime [hour]"] = array_downtime
+        self.__outputsOfWP6["arrayAvailability [-]"] = array_availability
+        self.__outputsOfWP6["numberOfJourneys [-]"] = n_journeys
+        self.__outputsOfWP6["OpexPerYear [Euro]"] = opex_per_year
+        self.__outputsOfWP6["energyPerYear [Wh]"] = energy_per_year
+        self.__outputsOfWP6["downtimePerDevice [hour]"] = downtime_per_device
+        self.__outputsOfWP6["energyPerDevice [Wh]"] = energy_per_device
 
         return
