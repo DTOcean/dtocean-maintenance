@@ -17,6 +17,7 @@ from dtocean_maintenance.static import (Availability,
                                         get_uptime_df,
                                         get_device_energy_df,
                                         get_opex_per_year,
+                                        get_opex_lcoe,
                                         get_number_of_journeys)
 
 
@@ -794,6 +795,65 @@ def test_get_device_energy_df(events_tables_dict):
     assert np.isclose(dev_energy_sum, dev_energy_df["Energy"]).all()
     assert dev_energy_df["Year"].min() == commissioning_year
     assert dev_energy_df["Year"].max() == commissioning_year + mission_time
+    
+    
+def test_get_opex_lcoe():
+    
+    cost_dict = {'Cost': {0: 0.0,
+                          1: 9379513.0,
+                          2: 223099.0,
+                          3: 80678.0,
+                          4: 0.0,
+                          5: 0.0,
+                          6: 259793.0,
+                          7: 0.0,
+                          8: 0.0,
+                          9: 0.0,
+                          10: 0.0,
+                          11: 250800.0,
+                          12: 0.0,
+                          13: 0.0,
+                          14: 0.0,
+                          15: 0.0,
+                          16: 0.0,
+                          17: 0.0,
+                          18: 0.0,
+                          19: 0.0,
+                          20: 0.0,
+                          21: 0.0},
+                 'Year': {x: x for x in xrange(22)}}
+    
+    ener_dict = {'Energy': {0: 0.0,
+                            1: 15918766.9641,
+                            2: 8529554.7092250008,
+                            3: 2456054.7699600002,
+                            4: 12059999.879400002,
+                            5: 12093040.974960001,
+                            6: 16366027.2336,
+                            7: 18299999.817000002,
+                            8: 18299999.817000002,
+                            9: 18350136.802800003,
+                            10: 18299999.817000002,
+                            11: 18299999.817000002,
+                            12: 18299999.817000002,
+                            13: 18350136.802800003,
+                            14: 18299999.817000002,
+                            15: 18299999.817000002,
+                            16: 18299999.817000002,
+                            17: 18350136.802800003,
+                            18: 18299999.817000002,
+                            19: 18299999.817000002,
+                            20: 18299999.817000002,
+                            21: 2089.0410750000001},
+                 'Year': {x: x for x in xrange(22)}}
+    
+    cost_df = pd.DataFrame(cost_dict)
+    energy_df = pd.DataFrame(ener_dict)
+    
+    result = get_opex_lcoe(cost_df, energy_df, 0.05)
+    
+    assert 0 <= result < np.inf
+    assert np.isclose(result, 0.0497459526411)
 
 
 def test_get_opex_per_year(events_tables_dict):

@@ -83,6 +83,7 @@ setup(name='dtocean-maintenance',
       license="GPLv3",
       packages=find_packages(),
       install_requires=[
+          'dtocean-economics==1.1.dev0',
           'dtocean-logistics==1.1.dev1',
           'dtocean-reliability==1.1.dev0',
           'numpy',

@@ -38,6 +38,7 @@ from .static import (Availability,
                      get_uptime_df,
                      get_device_energy_df,
                      get_opex_per_year,
+                     get_opex_lcoe,
                      get_number_of_journeys,
                      poisson_process)
 
@@ -99,6 +100,7 @@ class LCOE_Statistics(object):
         
         metrics_dict = {"lifetimeOpex [Euro]": [],
                         "lifetimeEnergy [Wh]": [],
+                        "LCOEOpex [Euro/kWh]": [],
                         "arrayDowntime [hour]": [],
                         "arrayAvailability [-]": [],
                         "numberOfJourneys [-]": []}
@@ -4595,6 +4597,14 @@ class LCOE_Calculator(object):
                                                        commissioning_date,
                                                        mission_time)
         
+        # LCOE
+        energy_per_year_kw = energy_per_year.copy()
+        energy_per_year_kw["Energy"] = energy_per_year_kw["Energy"] / 1e3
+        
+        opex_lcoe = get_opex_lcoe(opex_per_year,
+                                  energy_per_year_kw,
+                                  self.__Simu_Param["discountRate"])
+        
         # Journeys
         n_journeys = get_number_of_journeys(events_tables_dict)
         
@@ -4607,5 +4617,6 @@ class LCOE_Calculator(object):
         self.__outputsOfWP6["energyPerYear [Wh]"] = energy_per_year
         self.__outputsOfWP6["downtimePerDevice [hour]"] = downtime_per_device
         self.__outputsOfWP6["energyPerDevice [Wh]"] = energy_per_device
+        self.__outputsOfWP6["LCOEOpex [Euro/kWh]"] = opex_lcoe
 
         return
