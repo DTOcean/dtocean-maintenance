@@ -307,6 +307,9 @@ def test():
     Simu_Param['power_prod_perD']               = dictDummy1
     Simu_Param['annual_Energy_Production_perD'] = np.array(arrayDummy2)
     
+    # Discount rate
+    Simu_Param['discountRate'] = 0.05
+    
     del dictDummy1, arrayDummy2 
     
     # This information is coming from WP3. Use the random values in coreSimu    

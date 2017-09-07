@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
+from dtocean_economics.functions import get_present_values, get_lcoe
+
 
 class Availability(object):
     
@@ -310,6 +312,29 @@ def get_opex_per_year(start_date,
     opex_per_year = eco_df.reset_index()
     
     return opex_per_year
+
+
+def get_opex_lcoe(opex_df, energy_df, discount_rate):
+    
+    opex_costs = opex_df["Cost"].values
+    opex_years = opex_df["Year"].values
+    
+    present_opex = get_present_values(opex_costs,
+                                      opex_years,
+                                      discount_rate)
+    discounted_opex = present_opex.sum()
+    
+    energy_costs = energy_df["Energy"].values
+    energy_years = energy_df["Year"].values
+    
+    present_energy = get_present_values(energy_costs,
+                                        energy_years,
+                                        discount_rate)
+    discounted_energy = present_energy.sum()
+    
+    lcoe = get_lcoe(discounted_opex, discounted_energy)
+    
+    return lcoe
 
 
 def get_number_of_journeys(events_tables_dict):

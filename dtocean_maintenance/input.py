@@ -290,6 +290,9 @@ class inputOM:
                     Date of simulation start
                 missionTime (float) [year]:
                     Simulation time
+                discountRate (float) [-]:
+                    Discount rate for LCOE calculations as a decimal between
+                    0 and 1
 
         Control_Param (dict): This parameter records the O&M module control
             from GUI (to be extended in future)
