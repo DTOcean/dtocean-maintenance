@@ -301,7 +301,7 @@ class inputOM:
                 checkNoSolution (bool) [-]: see below
                 curtailDevices (bool) [-]: shut down devices indefinitely
                 numberOfSimulations (int) [-]: Statistical population size
-                NumberOfParallelActions (int) [-]:
+                numberOfParallelActions (int) [-]:
                     Maximum number of operations that can be completed by one
                     vessel. Optional, defaults to 10
                 
