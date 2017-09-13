@@ -427,7 +427,7 @@ class LCOE_Calculator(object):
                 checkNoSolution (bool) [-]: see below
                 curtailDevices (bool) [-]: shut down devices indefinitely
                 numberOfSimulations (int) [-]: Statistical population size
-                NumberOfParallelActions (int) [-]:
+                numberOfParallelActions (int) [-]:
                     Maximum number of operations that can be completed by one
                     vessel. Optional, defaults to 10
                 
@@ -1075,11 +1075,11 @@ class LCOE_Calculator(object):
         # maintenance
 
         # Calendar based maintenance: Number of parallel actions [-]
-        if ("NumberOfParallelActions" in self.__Control_Param and
-            self.__Control_Param["NumberOfParallelActions"] is not None):
+        if ("numberOfParallelActions" in self.__Control_Param and
+            self.__Control_Param["numberOfParallelActions"] is not None):
             
             self.__CaBaMa_nrOfMaxActions = \
-                                self.__Control_Param["NumberOfParallelActions"]
+                                self.__Control_Param["numberOfParallelActions"]
         
         else:
         
