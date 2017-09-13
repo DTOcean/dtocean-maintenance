@@ -6,7 +6,6 @@
 """
 
 # Standard modules
-import sys
 import copy
 import math
 import string
@@ -73,13 +72,7 @@ class LCOE_Statistics(object):
 
         '''
 
-        try:
-
-            output_dict = self.main()
-
-        except KeyboardInterrupt:
-
-            sys.exit('Interrupt by Keyboard in dtocean_maintenance')
+        output_dict = self.main()
             
         return output_dict
 
