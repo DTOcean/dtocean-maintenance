@@ -98,6 +98,13 @@ class LCOE_Statistics(object):
         # Population size
         n_sims = control_param['numberOfSimulations']
         
+        if n_sims < 1:
+            
+            errMsg = ("At least one data point must be evaluated; however, "
+                      "parameter numberOfSimulations is set to "
+                      "{}").format(n_sims)
+            raise ValueError(errMsg)
+        
         metrics_dict = {"lifetimeOpex [Euro]": [],
                         "lifetimeEnergy [Wh]": [],
                         "LCOEOpex [Euro/kWh]": [],
@@ -112,6 +119,9 @@ class LCOE_Statistics(object):
                 
         # Run simulations and collect results
         for sim_number in xrange(n_sims):
+            
+            msg = ('Executing data point number {}').format(sim_number)
+            module_logger.info(msg)
                         
             calculator = LCOE_Calculator(self.__inputOMPtr)
             data_point = calculator.executeCalc()
