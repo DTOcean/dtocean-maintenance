@@ -64,7 +64,8 @@ def om_logistics_main(vessels_0,
                       connectors,
                       om,
                       PRINT_FLAG,
-                      optimise_delay=False):
+                      optimise_delay=False,
+                      custom_waiting=None):
 
     """
     Parameters
@@ -248,7 +249,8 @@ def om_logistics_main(vessels_0,
                                    metocean,
                                    layout,
                                    om,
-                                   optimise_delay)
+                                   optimise_delay,
+                                   custom_waiting)
         
         if SCHEDULE_FLAG == 'NoWWindows':
             

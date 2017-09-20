@@ -21,6 +21,7 @@ import pandas as pd
 # DTOcean modules
 from dtocean_logistics.feasibility.feasability_om import feas_om
 from dtocean_logistics.load.safe_factors import safety_factors
+from dtocean_logistics.performance.schedule.schedule_shared import WaitingTime
 from dtocean_logistics.phases import select_port_OM
 from dtocean_logistics.phases.om import logPhase_om_init
 from dtocean_logistics.phases.om.select_logPhase import logPhase_select
@@ -109,6 +110,12 @@ class LCOE_Statistics(object):
         device_downtime_df = pd.DataFrame()
         device_energies_df = pd.DataFrame()
         events_table_dicts = []
+        
+        # Use a single WaitingTime class for all simulations
+        logistic_param = self.__inputOMPtr.get_Logistic_Param()
+        metocean = logistic_param['metocean']
+        
+        custom_waiting = WaitingTime(metocean)
                 
         # Run simulations and collect results
         for sim_number in xrange(n_sims):
@@ -116,7 +123,8 @@ class LCOE_Statistics(object):
             msg = ('Executing data point number {}').format(sim_number)
             module_logger.info(msg)
                         
-            calculator = LCOE_Calculator(self.__inputOMPtr)
+            calculator = LCOE_Calculator(self.__inputOMPtr,
+                                         custom_waiting=custom_waiting)
             data_point = calculator.executeCalc()
                                     
             for key in metrics_dict.keys():
@@ -634,7 +642,8 @@ class LCOE_Calculator(object):
 
     '''
 
-    def __init__(self, inputOMPTR):
+    def __init__(self, inputOMPTR,
+                       custom_waiting=None):
 
         '''__init__ function: Saves the arguments in internal variabels.
 
@@ -652,6 +661,9 @@ class LCOE_Calculator(object):
         # start: Read from inputOM
         # Save the instance pointer of inputOM
         self.__inputOMPTR = inputOMPTR
+        
+        # Set custom WaitingTime class
+        self.__custom_waiting = custom_waiting
 
         # Read the inputs from core
         self.__Farm_OM          = self.__inputOMPTR.get_Farm_OM()
@@ -4231,7 +4243,8 @@ class LCOE_Calculator(object):
                                            self.__connectors,
                                            self.__wp6_outputsForLogistic,
                                            self.__dtocean_logistics_PRINT_FLAG,
-                                           optimise_delay)
+                                           optimise_delay,
+                                           self.__custom_waiting)
 
         return
 
