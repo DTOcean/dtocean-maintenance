@@ -3702,13 +3702,21 @@ class LCOE_Calculator(object):
                                    loopValuesForOutput_UnCoMa,
                                    flagCalcCoBaMa,
                                    flagCalcUnCoMa):
-
+        
+        # Skip empty tables
+        if self.__UnCoMa_eventsTable.empty:
+        
+            return (loop,
+                    loopValuesForOutput_UnCoMa,
+                    flagCalcCoBaMa,
+                    flagCalcUnCoMa)
+            
         start_time_UnCoMa = timeit.default_timer()
 
         # actualIndexOfRepairTable is determined
         # do the the reapir
         idx = self.__actIdxOfUnCoMa
-
+            
         ComponentType = str(self.__UnCoMa_eventsTable.ComponentType[idx])
         ComponentSubType = str(self.__UnCoMa_eventsTable.ComponentSubType[idx])
         ComponentID = str(self.__UnCoMa_eventsTable.ComponentID[idx])
