@@ -56,7 +56,7 @@ class Availability(object):
     def get_array_availability(self):
         
         array_downtime = self.get_array_downtime()
-        array_availability = 1 - array_downtime / self._max_uptime
+        array_availability = 1 - float(array_downtime) / self._max_uptime
         
         return array_availability
     
