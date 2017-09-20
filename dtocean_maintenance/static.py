@@ -10,6 +10,7 @@ classes.
 """
 
 import math
+import bisect
 import random
 import datetime
 
@@ -158,17 +159,19 @@ def get_uptime_df(commissioning_date,
                   mission_time,
                   device_ids,
                   events_tables_dict):
-
+    
     # Calculate device uptime per year
     end_date = commissioning_date + relativedelta(years=int(mission_time))
-    uptime_dict = {"Date": [commissioning_date, end_date]}
+    start_date_hour = commissioning_date.replace(microsecond=0,
+                                                 second=0,
+                                                 minute=0)
+    end_date_hour = end_date.replace(microsecond=0, second=0, minute=0)
+    uptime_dates = pd.date_range(start_date_hour, end_date_hour, freq="H")
+    
+    uptime_dict = {"Date": uptime_dates}
     
     for device_id in device_ids:
-        uptime_dict[device_id] = [1, 1]
-        
-    uptime_df = pd.DataFrame(uptime_dict)
-    uptime_df = uptime_df.set_index("Date")    
-    uptime_df = uptime_df.resample("H").pad()
+        uptime_dict[device_id] = [1] * len(uptime_dates)
     
     for event_df in events_tables_dict.itervalues():
                     
@@ -196,16 +199,26 @@ def get_uptime_df(commissioning_date,
                                      
                 # Avoid zero downtime events
                 if downtime_start == downtime_end: continue
+            
+                downtime_start_hour = downtime_start.replace(microsecond=0,
+                                                             second=0,
+                                                             minute=0)
+                downtime_end_hour = downtime_end.replace(microsecond=0,
+                                                         second=0,
+                                                         minute=0)
+            
+                downtime_start_idx = bisect.bisect_right(uptime_dates,
+                                                         downtime_start_hour)
+                downtime_end_idx = bisect.bisect_left(uptime_dates,
+                                                      downtime_end_hour)
                 
-                action_dict = {"Date": [downtime_start,
-                                        downtime_end]}
-                action_dict[device_id] = [0, 0]
-    
-                action_df = pd.DataFrame(action_dict)
-                action_df = action_df.set_index("Date")
-                                                        
-                action_df = action_df.resample("H").pad()
-                uptime_df.update(action_df)
+                n_zeros = downtime_end_idx - downtime_start_idx
+                
+                uptime_dict[device_id][
+                        downtime_start_idx:downtime_end_idx] = [0] * n_zeros
+                
+    uptime_df = pd.DataFrame(uptime_dict)
+    uptime_df = uptime_df.set_index("Date")
                 
     return uptime_df
 
