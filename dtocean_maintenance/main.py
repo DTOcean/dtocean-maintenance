@@ -1441,14 +1441,10 @@ class LCOE_Calculator(object):
         mission_time = self.__operationTimeYear * self.__yearDays * \
                                                             self.__dayHours
 
-        # target mean time to failure in hours
-        target_time = 0.4 * self.__operationTimeYear * self.__yearDays * \
-                                                            self.__dayHours
-
         input_variables = Variables(mission_time,
-                                    target_time,
                                     self.__systype,
                                     self.__db,
+                                    None,
                                     self.__eleclayout,
                                     self.__elechierdict,
                                     self.__elecbomeg,
