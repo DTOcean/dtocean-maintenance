@@ -610,8 +610,8 @@ class Array(object):
 
             system = self.__rsubsysvalues[iCnt]
 
-            if (('Substation' in system[0][1] or
-                                         'Export Cable' in system[0][1]) and
+            if (system[0] not in ["PAR", "SER"] and
+                system[0][1] in ['Export Cable', 'Substation']and
                 'array' in system[0][2]):
 
                 ramFailureRateList.append(system[0][-1])
