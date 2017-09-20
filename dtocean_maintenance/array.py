@@ -86,8 +86,11 @@ class Array(object):
         # Start of operation date
         self.__startOperationDate = startOperationDate
 
-        # Electrical layout architecture
-        self.__eleclayout = eleclayout
+        # Electrical layout architecture. If None assume radial
+        if eleclayout is None:
+            self.__eleclayout = 'radial'
+        else:
+            self.__eleclayout = eleclayout
 
         # systype
         self.__systype = systype
