@@ -654,8 +654,8 @@ class Array(object):
 
                         #  The second one is for the the umbilical
                         # cable
-                        if ('M&F sub-system' in dummyStr and
-                            flagMFSubSystem == True):
+                        elif ('M&F sub-system' in dummyStr and
+                              flagMFSubSystem == True):
 
                             dummyStr = dummyStr + ' dynamic cable'
 
