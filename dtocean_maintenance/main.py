@@ -1774,10 +1774,10 @@ class LCOE_Calculator(object):
         outputsForPortSelection = pd.DataFrame(index=[0],
                                                columns=self.__logisticKeys)
 
-        sp_dry_mass_dummy       = 0
-        sp_length_dummy         = 0
-        sp_width_dummy          = 0
-        sp_height_dummy         = 0
+        sp_dry_mass_dummy       = 0.01
+        sp_length_dummy         = 0.01
+        sp_width_dummy          = 0.01
+        sp_height_dummy         = 0.01
 
         self.__portDistIndex['inspection'] = []
         self.__portDistIndex['repair']     = []
