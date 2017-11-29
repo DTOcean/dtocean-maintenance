@@ -190,15 +190,15 @@ class LCOE_Calculator(object):
                 corrective_maintenance (bool) [-]:
                     User input if one wants to consider corrective maintenance
                 duration_shift (int) [h]:
-                    Duration of a shift
+                    Duration of a shift (not implemented)
                 helideck (str or bool -> logistic) [-]:
                     If there is helideck available or not?
                 number_crews_available (int) [-]:
-                    Number of available crews
+                    Number of available crews (not implemented)
                 number_crews_per_shift (int) [-]:
-                    Number of crews per shift
+                    Number of crews per shift (not implemented)
                 number_shifts_per_day (int) [-]:
-                    Number of shifts per day
+                    Number of shifts per day (not implemented)
                 wage_specialist_day (float) [Euro/h]:
                     Wage for specialists crew at daytime e.g. diver
                 wage_specialist_night (float) [Euro/h]:
