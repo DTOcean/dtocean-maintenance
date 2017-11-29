@@ -3213,15 +3213,10 @@ class LCOE_Calculator(object):
 
         if divModBlockNumber[0] > 0:
 
-            for iCnt in range(0, divModBlockNumber[0]):
-
+            for _ in xrange(divModBlockNumber[0]):
                 blockNumberList.append(self.__CaBaMa_nrOfMaxActions)
 
-                if iCnt == divModBlockNumber[0] - 1:
-                    blockNumberList.append(divModBlockNumber[1])
-
-        else:
-
+        if divModBlockNumber[1] > 0:
             blockNumberList.append(divModBlockNumber[1])
             
         for iCnt in range(0, len(blockNumberList)):
