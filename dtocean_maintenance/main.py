@@ -4072,15 +4072,22 @@ class LCOE_Calculator(object):
         optLogisticCostValue = optimal['total cost']
 
         # should the next operation be shifted? Check self.__repairTable
-        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
+        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable):
 
-            nidx = self.__actIdxOfUnCoMa + 1
-            secs = (self.__UnCoMa_eventsTable.repairActionEvents[nidx] -
-                                        self.__endOpDate).total_seconds()
-
+            nidx = self.__actIdxOfUnCoMa
+            next_rep = self.__UnCoMa_eventsTable.repairActionEvents[nidx] + \
+                                  timedelta(hours=-self.__totalActionDelayHour)
+            
+            secs = (next_rep - self.__endOpDate).total_seconds()
             self.__actActionDelayHour = secs // 3600
-            self.__totalActionDelayHour = self.__totalActionDelayHour + \
-                                                self.__actActionDelayHour
+            
+            new_action_delay = self.__totalActionDelayHour + \
+                                                    self.__actActionDelayHour
+            
+            if new_action_delay < 0:
+                self.__totalActionDelayHour = new_action_delay
+            else:
+                self.__totalActionDelayHour = 0.
 
         # Calculation of total action time (hour)
         # Error in logistic, Therefore calculation in WP6
