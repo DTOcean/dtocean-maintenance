@@ -530,7 +530,7 @@ class Array(object):
         eventsTable = pd.DataFrame(data)
 
         # sort of eventsTable
-        eventsTable.sort(columns=self.__eventsTableKeys[1], inplace=True)
+        eventsTable.sort_values(by=self.__eventsTableKeys[1], inplace=True)
 
         # start index with 0
         eventsTable.reset_index(drop=True, inplace=True)
@@ -566,8 +566,8 @@ class Array(object):
         eventsTableNoPoisson = pd.DataFrame(data1)
 
         # sort of eventsTable
-        eventsTableNoPoisson.sort(columns=self.__eventsTableKeys[5],
-                                  inplace=True)
+        eventsTableNoPoisson.sort_values(by=self.__eventsTableKeys[5],
+                                         inplace=True)
 
         # start index with 0
         eventsTableNoPoisson.reset_index(drop=True, inplace=True)
