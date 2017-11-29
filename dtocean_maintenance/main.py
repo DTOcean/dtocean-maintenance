@@ -1634,15 +1634,15 @@ class LCOE_Calculator(object):
                 loopCalendar != 0):
 
                 # 1: sort of CaBaMa_eventsTable
-                self.__CaBaMa_eventsTable.sort(columns=['startActionDate',
-                                                        'ComponentSubType',
-                                                        'FM_ID'],
-                                               inplace=True)
+                self.__CaBaMa_eventsTable.sort_values(by=['startActionDate',
+                                                          'ComponentSubType',
+                                                          'FM_ID'],
+                                                      inplace=True)
 
                 # 2: sort of CaBaMa_eventsTable
-                self.__CaBaMa_eventsTable.sort(columns=['startActionDate',
-                                                        'belongsToSort'],
-                                               inplace=True)
+                self.__CaBaMa_eventsTable.sort_values(by=['startActionDate',
+                                                          'belongsToSort'],
+                                                      inplace=True)
 
                 # start index with 0
                 self.__CaBaMa_eventsTable.reset_index(drop=True, inplace=True)
@@ -1652,8 +1652,8 @@ class LCOE_Calculator(object):
                 0 < len(self.__CoBaMa_eventsTable)):
 
                 # sort of CoBaMa_eventsTable
-                self.__CoBaMa_eventsTable.sort(columns=['currentAlarmDate'],
-                                               inplace=True)
+                self.__CoBaMa_eventsTable.sort_values(by=['currentAlarmDate'],
+                                                      inplace=True)
 
                 # start index with 0
                 self.__CoBaMa_eventsTable.reset_index(drop=True, inplace=True)
@@ -1742,8 +1742,8 @@ class LCOE_Calculator(object):
                                               'repairActionEvents'] = shiftDate
 
             # sort of eventsTable
-            self.__UnCoMa_eventsTable.sort(
-                                    columns=self.__UnCoMa_eventsTableKeys[1],
+            self.__UnCoMa_eventsTable.sort_values(
+                                    by=self.__UnCoMa_eventsTableKeys[1],
                                     inplace=True)
 
             # start index with 0
@@ -3041,8 +3041,8 @@ class LCOE_Calculator(object):
     
     
                     # sort of CoBaMa_eventsTable
-                    self.__CoBaMa_eventsTable.sort(
-                                                columns=['currentAlarmDate'],
+                    self.__CoBaMa_eventsTable.sort_values(
+                                                by=['currentAlarmDate'],
                                                 inplace=True)
     
                     # start index with 0
@@ -4541,8 +4541,8 @@ class LCOE_Calculator(object):
                                               'repairActionEvents'] = shiftDate
 
         # sort of eventsTable
-        self.__UnCoMa_eventsTable.sort(
-                                    columns=self.__UnCoMa_eventsTableKeys[1],
+        self.__UnCoMa_eventsTable.sort_values(
+                                    by=self.__UnCoMa_eventsTableKeys[1],
                                     inplace=True)
 
         return
