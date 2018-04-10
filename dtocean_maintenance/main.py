@@ -3469,6 +3469,14 @@ class LCOE_Calculator(object):
                 raise RuntimeError(self.__om_logistic['findSolution'])
 
             optimal = self.__om_logistic['optimal']
+            
+            for i, jour in enumerate(optimal['vessel_equipment']):
+                
+                vessel_id = "{}: {}".format(jour[0], jour[2]["Name"])
+            
+                logMsg = "Chosen vessel for journey {} is {}".format(i,
+                                                                     vessel_id)
+                module_logger.info(logMsg)
 
             self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
                                                  optimal['end_dt'].month,
