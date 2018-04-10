@@ -3528,6 +3528,8 @@ class LCOE_Calculator(object):
              omCostValue) = self.__calcCostOfOM(FM_ID, CompIDWithIndex)
 
             logisticcost = round(optLogisticCostValue / float(blockNumber), 2)
+            labourcost = round((omCostValue - omCostValueSpare) /
+                                                       float(blockNumber), 2)
             omcost = round(omCostValue, 2)
 
             currentStartActionDateList = [operation_action_date]
@@ -3672,9 +3674,9 @@ class LCOE_Calculator(object):
                                        FM_ID,
                                        RA_ID,
                                        indexFM,
-                                       int(optLogisticCostValue),
-                                       int(omCostValue - omCostValueSpare),
-                                       int(omCostValueSpare)]
+                                       logisticcost,
+                                       labourcost,
+                                       round(omCostValueSpare, 2)]
 
                     self.__CaBaMa_outputEventsTable.ix[
                             loopValuesForOutput_CaBaMa] = valuesForOutput
