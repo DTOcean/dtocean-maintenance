@@ -1751,9 +1751,8 @@ class LCOE_Calculator(object):
                                               'repairActionEvents'] = shiftDate
 
             # sort of eventsTable
-            self.__UnCoMa_eventsTable.sort_values(
-                                    by=self.__UnCoMa_eventsTableKeys[1],
-                                    inplace=True)
+            self.__UnCoMa_eventsTable.sort_values(by='repairActionEvents',
+                                                  inplace=True)
 
             # start index with 0
             self.__UnCoMa_eventsTable.reset_index(drop=True, inplace=True)
@@ -4566,9 +4565,8 @@ class LCOE_Calculator(object):
                                               'repairActionEvents'] = shiftDate
 
         # sort of eventsTable
-        self.__UnCoMa_eventsTable.sort_values(
-                                    by=self.__UnCoMa_eventsTableKeys[1],
-                                    inplace=True)
+        self.__UnCoMa_eventsTable.sort_values(by='repairActionEvents',
+                                              inplace=True)
 
         return
 
