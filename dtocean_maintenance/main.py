@@ -767,8 +767,7 @@ class LCOE_Calculator(object):
                                                'costLogistic [Euro]',
                                                'costOM_Labor [Euro]',
                                                'costOM_Spare [Euro]',
-                                               'typeOfvessels [-]',
-                                               'nrOfvessels [-]']
+                                               'nameOfvessel [-]']
 
 
         self.__UnCoMa_outputEventsTable = pd.DataFrame(
@@ -1134,7 +1133,8 @@ class LCOE_Calculator(object):
                                                 'indexFM [-]',
                                                 'costLogistic [Euro]',
                                                 'costOM_Labor [Euro]',
-                                                'costOM_Spare [Euro]']
+                                                'costOM_Spare [Euro]',
+                                                'nameOfvessel [-]']
 
         self.__CaBaMa_outputEventsTable = pd.DataFrame(
                                 index=[0],
@@ -1180,7 +1180,8 @@ class LCOE_Calculator(object):
                                                'indexFM [-]',
                                                'costLogistic [Euro]',
                                                'costOM_Labor [Euro]',
-                                               'costOM_Spare [Euro]']
+                                               'costOM_Spare [Euro]',
+                                               'nameOfvessel [-]']
 
         self.__CoBaMa_outputEventsTable = pd.DataFrame(
                                 index=[0],
@@ -2969,6 +2970,9 @@ class LCOE_Calculator(object):
             except ValueError:
                 alarmstr = datetime.datetime.strptime(str(currentAlarmDate),
                                                       self.__strFormat2)
+                
+            vessel_equip = self.__om_logistic['optimal']['vessel_equipment']
+            vessel_name = vessel_equip[0][2]["Name"]
             
             valuesForOutput = [failureRate,
                                alarmstr,
@@ -2984,7 +2988,8 @@ class LCOE_Calculator(object):
                                indexFM,
                                int(optLogisticCostValue),
                                int(omCostValue-omCostValueSpare),
-                               int(omCostValueSpare)]
+                               int(omCostValueSpare),
+                               vessel_name]
 
             self.__CoBaMa_outputEventsTable.ix[
                                 loopValuesForOutput_CoBaMa] = valuesForOutput
@@ -2995,67 +3000,65 @@ class LCOE_Calculator(object):
             # loopValuesForOutput
             loopValuesForOutput_CoBaMa = loopValuesForOutput_CoBaMa + 1
 
-            if self.__om_logistic['findSolution'] == 'SolutionFound':
+            # for environmental team
+            self.__env_assess(loop,
+                              currentAlarmDate,
+                              FM_ID,
+                              RA_ID,
+                              optimal['schedule sea time'],
+                              'CoBaMa')
 
-                # for environmental team
-                self.__env_assess(loop,
-                                  currentAlarmDate,
-                                  FM_ID,
-                                  RA_ID,
-                                  optimal['schedule sea time'],
-                                  'CoBaMa')
+            # loop
+            loop = loop + 1
 
-                # loop
-                loop = loop + 1
+            # calculate the new entry in self.__CoBaMa_eventsTable
+            index = -1
+            series = self.__arrayDict[ComponentID][
+                                'CoBaMa_initOpEventsList'][indexFM - 1]
 
-                # calculate the new entry in self.__CoBaMa_eventsTable
-                index = -1
-                series = self.__arrayDict[ComponentID][
-                                    'CoBaMa_initOpEventsList'][indexFM - 1]
+            for iCnt2 in range(0, len(series)):
 
-                for iCnt2 in range(0, len(series)):
+                if (newLineCurrentStartDate < series[iCnt2] and
+                    currentEndDate < series[iCnt2]):
 
-                    if (newLineCurrentStartDate < series[iCnt2] and
-                        currentEndDate < series[iCnt2]):
+                    index = iCnt2
+                    break
 
-                        index = iCnt2
-                        break
+            if index >= 0:
 
-                if index >= 0:
+                lidx = len(self.__CoBaMa_eventsTable)    
+                current = self.__CoBaMa_eventsTable.iloc[
+                                                self.__actIdxOfCoBaMa, :]
 
-                    lidx = len(self.__CoBaMa_eventsTable)    
-                    current = self.__CoBaMa_eventsTable.iloc[
-                                                    self.__actIdxOfCoBaMa, :]
-    
-                    # new line for the extension of CoBaMa
-                    self.__CoBaMa_eventsTable.ix[lidx] = copy.deepcopy(current)
-    
-                    newLineCurrentEndDate = series[index]
-    
-                    secs = (newLineCurrentEndDate -
-                                    newLineCurrentStartDate).total_seconds()
-                    hours = secs / 3600
-                    shift = hours * (1.0 - threshold)
-    
-                    newLineCurrentAlarmDate = newLineCurrentStartDate + \
-                                                        timedelta(hours=shift)
-    
-                    self.__CoBaMa_eventsTable.loc[lidx, 'currentStartDate'] = \
-                                                    newLineCurrentStartDate
-                    self.__CoBaMa_eventsTable.loc[lidx, 'currentEndDate'] = \
-                                                    newLineCurrentEndDate
-                    self.__CoBaMa_eventsTable.loc[lidx, 'currentAlarmDate'] = \
-                                                    newLineCurrentAlarmDate
-    
-    
-                    # sort of CoBaMa_eventsTable
-                    self.__CoBaMa_eventsTable.sort_values(
-                                                by=['currentAlarmDate'],
-                                                inplace=True)
-    
-                    # start index with 0
-                    self.__CoBaMa_eventsTable.reset_index(drop=True,
-                                                          inplace=True)
+                # new line for the extension of CoBaMa
+                self.__CoBaMa_eventsTable.ix[lidx] = copy.deepcopy(current)
+
+                newLineCurrentEndDate = series[index]
+
+                secs = (newLineCurrentEndDate -
+                                newLineCurrentStartDate).total_seconds()
+                hours = secs / 3600
+                shift = hours * (1.0 - threshold)
+
+                newLineCurrentAlarmDate = newLineCurrentStartDate + \
+                                                    timedelta(hours=shift)
+
+                self.__CoBaMa_eventsTable.loc[lidx, 'currentStartDate'] = \
+                                                newLineCurrentStartDate
+                self.__CoBaMa_eventsTable.loc[lidx, 'currentEndDate'] = \
+                                                newLineCurrentEndDate
+                self.__CoBaMa_eventsTable.loc[lidx, 'currentAlarmDate'] = \
+                                                newLineCurrentAlarmDate
+
+
+                # sort of CoBaMa_eventsTable
+                self.__CoBaMa_eventsTable.sort_values(
+                                            by=['currentAlarmDate'],
+                                            inplace=True)
+
+                # start index with 0
+                self.__CoBaMa_eventsTable.reset_index(drop=True,
+                                                      inplace=True)
 
         # increase the index
         self.__actIdxOfCoBaMa = self.__actIdxOfCoBaMa + 1
@@ -3667,43 +3670,45 @@ class LCOE_Calculator(object):
                             (stop_time_logistic - start_time_logistic)
 
                 print 'calcCaBaMa: Simulation Duration [s]: ' + str(time)
+                
+            vessel_equip = self.__om_logistic['optimal']['vessel_equipment']
+            vessel_name = vessel_equip[0][2]["Name"]
 
-            if self.__om_logistic['findSolution'] == 'SolutionFound':
+            for iCnt1 in range(0, blockNumber):
 
-                for iCnt1 in range(0, blockNumber):
+                valuesForOutput = [str(currentStartActionDate),
+                                   str(currentStartActionDateList[iCnt1]),
+                                   totalDownTimeHours,
+                                   '',
+                                   str(ComponentTypeList[iCnt1]),
+                                   str(ComponentSubTypeList[iCnt1]),
+                                   str(ComponentIDList[iCnt1]),
+                                   FM_ID,
+                                   RA_ID,
+                                   indexFM,
+                                   logisticcost,
+                                   labourcost,
+                                   round(omCostValueSpare, 2),
+                                   vessel_name]
 
-                    valuesForOutput = [str(currentStartActionDate),
-                                       str(currentStartActionDateList[iCnt1]),
-                                       totalDownTimeHours,
-                                       '',
-                                       str(ComponentTypeList[iCnt1]),
-                                       str(ComponentSubTypeList[iCnt1]),
-                                       str(ComponentIDList[iCnt1]),
-                                       FM_ID,
-                                       RA_ID,
-                                       indexFM,
-                                       logisticcost,
-                                       labourcost,
-                                       round(omCostValueSpare, 2)]
+                self.__CaBaMa_outputEventsTable.ix[
+                        loopValuesForOutput_CaBaMa] = valuesForOutput
+                self.__CaBaMa_outputEventsTable.loc[
+                                        loopValuesForOutput_CaBaMa,
+                                        'downtimeDeviceList [-]'] = \
+                                                downtimeDeviceList[iCnt1]
 
-                    self.__CaBaMa_outputEventsTable.ix[
-                            loopValuesForOutput_CaBaMa] = valuesForOutput
-                    self.__CaBaMa_outputEventsTable.loc[
-                                            loopValuesForOutput_CaBaMa,
-                                            'downtimeDeviceList [-]'] = \
-                                                    downtimeDeviceList[iCnt1]
+                loopValuesForOutput_CaBaMa = loopValuesForOutput_CaBaMa + 1
 
-                    loopValuesForOutput_CaBaMa = loopValuesForOutput_CaBaMa + 1
+            # for environmental team
+            self.__env_assess(loop,
+                              currentStartActionDate,
+                              FM_ID,
+                              RA_ID,
+                              optimal['schedule sea time'],
+                              'CaBaMa')
 
-                # for environmental team
-                self.__env_assess(loop,
-                                  currentStartActionDate,
-                                  FM_ID,
-                                  RA_ID,
-                                  optimal['schedule sea time'],
-                                  'CaBaMa')
-
-                loop = loop + 1
+            loop = loop + 1
 
         return (loop,
                 loopValuesForOutput_CaBaMa,
@@ -4074,8 +4079,6 @@ class LCOE_Calculator(object):
         # In LpM7 case self.__om_logistic['optimal']['depart_dt'] is a dict
         if type(optimal['depart_dt']) == dict:
             dummy__departOpDate = optimal['depart_dt'][
-                                    'weather windows depart_dt_replace']
-            dummy__departOpDate = optimal['depart_dt'][
                                     'weather windows depart_dt_retrieve']
         else:
             dummy__departOpDate = optimal['depart_dt']
@@ -4191,6 +4194,7 @@ class LCOE_Calculator(object):
                           'UnCoMa')
 
         vessel_equip = self.__om_logistic['optimal']['vessel_equipment']
+        vessel_name = vessel_equip[0][2]["Name"]
 
         valuesForOutput = [failureRate,
                            str(failureEvents.replace(second=0)),
@@ -4209,8 +4213,7 @@ class LCOE_Calculator(object):
                            int(optLogisticCostValue),
                            int(omCostValue-omCostValueSpare),
                            int(omCostValueSpare),
-                           vessel_equip[0][0],
-                           vessel_equip[0][1]]
+                           vessel_name]
 
         self.__UnCoMa_outputEventsTable.ix[loopValuesForOutput_UnCoMa] = \
                                                             valuesForOutput
