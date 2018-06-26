@@ -4041,8 +4041,6 @@ class LCOE_Calculator(object):
 
         self.__wp6_outputsForLogistic.ix[0] = values
 
-        self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
-
         # Calc logistic functions
         start_time_logistic = timeit.default_timer()
         self.__calcLogistic(optimise_delay=True)
@@ -4091,24 +4089,6 @@ class LCOE_Calculator(object):
 
         # total optim cost from logistic
         optLogisticCostValue = optimal['total cost']
-
-        # should the next operation be shifted? Check self.__repairTable
-        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable):
-
-            nidx = self.__actIdxOfUnCoMa
-            next_rep = self.__UnCoMa_eventsTable.repairActionEvents[nidx] + \
-                                  timedelta(hours=-self.__totalActionDelayHour)
-            
-            secs = (next_rep - self.__endOpDate).total_seconds()
-            self.__actActionDelayHour = secs // 3600
-            
-            new_action_delay = self.__totalActionDelayHour + \
-                                                    self.__actActionDelayHour
-            
-            if new_action_delay < 0:
-                self.__totalActionDelayHour = new_action_delay
-            else:
-                self.__totalActionDelayHour = 0.
 
         # Calculation of total action time (hour)
         # Error in logistic, Therefore calculation in WP6
@@ -4183,8 +4163,27 @@ class LCOE_Calculator(object):
             self.__arrayDict[keys[iCnt1]]['UnCoMaCostOM'].append(0.0)
             self.__arrayDict[ComponentID]['UnCoMaNoWeatherWindow'] = True
 
-        # Update poisson events in eventTables
+        # Update poisson events in eventTables as device downtime increases
+        # lifetime of components
         self.__updatePoissonEvents()
+        
+        # Should the next operation be shifted? 
+        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable):
+
+            nidx = self.__actIdxOfUnCoMa + 1
+            next_rep = self.__UnCoMa_eventsTable.repairActionEvents[nidx] + \
+                                  timedelta(hours=-self.__totalActionDelayHour)
+            
+            secs = (next_rep - self.__endOpDate).total_seconds()
+            self.__actActionDelayHour = secs // 3600
+            
+            new_action_delay = self.__totalActionDelayHour + \
+                                                    self.__actActionDelayHour
+            
+            if new_action_delay < 0:
+                self.__totalActionDelayHour = new_action_delay
+            else:
+                self.__totalActionDelayHour = 0.
 
         # for environmental team
         self.__env_assess(loop,
@@ -4221,7 +4220,10 @@ class LCOE_Calculator(object):
         self.__UnCoMa_outputEventsTable.set_value(loopValuesForOutput_UnCoMa,
                                                   'downtimeDeviceList [-]',
                                                   downtimeDeviceList)
-                                                            
+        
+        # loop __actIdxOfUnCoMa
+        self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
+        
         # loopValuesForOutput
         loopValuesForOutput_UnCoMa = loopValuesForOutput_UnCoMa + 1
         
