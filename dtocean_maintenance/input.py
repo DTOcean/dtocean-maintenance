@@ -303,7 +303,10 @@ class inputOM:
                 numberOfSimulations (int) [-]: Statistical population size
                 numberOfParallelActions (int) [-]:
                     Maximum number of operations that can be completed by one
-                    vessel. Optional, defaults to 10
+                    vessel for calendar maintenance. Optional, defaults to 10
+                correctivePrepTime (float) [hour]:
+                    time required to prepare vessels for corrective 
+                    maintenance actions. Defaults to 48
                 
             Note:
 

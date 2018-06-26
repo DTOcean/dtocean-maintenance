@@ -1189,8 +1189,16 @@ class LCOE_Calculator(object):
         # actual index of UnCoMa_eventsTable
         self.__actIdxOfUnCoMa = 0
         self.__flagCalcUnCoMa = False
-        self.__PrepTimeCalcUnCoMa = 48
-
+        
+        if ("correctivePrepTime" in self.__Control_Param and
+            self.__Control_Param["correctivePrepTime"] is not None):
+            
+            self.__PrepTimeCalcUnCoMa = \
+                                    self.__Control_Param["correctivePrepTime"]
+        else:
+            
+            self.__PrepTimeCalcUnCoMa = 48
+        
         # actual index of CaBaMa_eventsTable
         self.__actIdxOfCaBaMa = 0
         self.__flagCalcCaBaMa = False
