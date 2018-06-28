@@ -4177,7 +4177,7 @@ class LCOE_Calculator(object):
         self.__updatePoissonEvents()
         
         # Should the next operation be shifted? 
-        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable):
+        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
 
             nidx = self.__actIdxOfUnCoMa + 1
             next_rep = self.__UnCoMa_eventsTable.repairActionEvents[nidx] + \
@@ -4230,11 +4230,11 @@ class LCOE_Calculator(object):
                                                   'downtimeDeviceList [-]',
                                                   downtimeDeviceList)
         
-        # loop __actIdxOfUnCoMa
-        self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
-        
         # loopValuesForOutput
         loopValuesForOutput_UnCoMa = loopValuesForOutput_UnCoMa + 1
+        
+        # loop __actIdxOfUnCoMa
+        self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
         
         # loop
         loop = loop + 1
@@ -4577,6 +4577,9 @@ class LCOE_Calculator(object):
         # sort of eventsTable
         self.__UnCoMa_eventsTable.sort_values(by='repairActionEvents',
                                               inplace=True)
+        
+        # start index with 0
+        self.__UnCoMa_eventsTable.reset_index(drop=True, inplace=True)
 
         return
 
