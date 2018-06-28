@@ -2425,7 +2425,6 @@ class LCOE_Calculator(object):
         indexFM = self.__CoBaMa_eventsTable.indexFM[idx]
         CompIDWithIndex = ComponentID + '_' + str(indexFM)
         currentAlarmDateStr = currentAlarmDate.strftime(self.__strFormat1)
-        failureDate = currentEndDate.strftime(self.__strFormat1)
         
         try:
             self.__repairActionDate = datetime.datetime.strptime(
