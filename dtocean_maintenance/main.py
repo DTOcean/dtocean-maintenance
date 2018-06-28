@@ -694,9 +694,6 @@ class LCOE_Calculator(object):
         # Days in one year
         self.__yearDays = 365.25
 
-        # Delete repair action after CaBaMa [hour]
-        self.__delayEventsAfterCaBaMaHour = 6*30*24
-
         # end: Declaration of constants for mainCalc
         #######################################################################
 
@@ -3825,10 +3822,10 @@ class LCOE_Calculator(object):
                     flagCalcCoBaMa,
                     flagCalcUnCoMa)
 
-        foundDeleteFlag = False
-
-        # check the impact of CaBaMa of UnCoMa
+        # Check for nullification of failure from CaBaMa
         if self.__Farm_OM['calendar_based_maintenance'] == True:
+            
+            foundDeleteFlag = False
 
             # find the blocks in CaBaMa
             if 'device' in ComponentType:
@@ -3850,20 +3847,6 @@ class LCOE_Calculator(object):
                      (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
                      (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
 
-                if 1 < len(dummyCaBaMaTable):
-
-                    dummyCaBaMaTable.reset_index(drop=True, inplace=True)
-
-                    for iCnt in range(0, len(dummyCaBaMaTable)):
-
-                        enddate = dummyCaBaMaTable.currentEndActionDate[iCnt]
-                        secs = (repairActionEvents - enddate).total_seconds()
-                        dummyTime = secs // 3600
-
-                        if dummyTime < self.__delayEventsAfterCaBaMaHour:
-                            foundDeleteFlag = True
-                            break
-
             else:
 
                 dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
@@ -3872,9 +3855,27 @@ class LCOE_Calculator(object):
                                              CaBaMaTableQuerySubSystem) & \
                         (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
                         (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
-
-                if 1 < len(dummyCaBaMaTable):
-
+                
+            if len(dummyCaBaMaTable) > 1:
+                
+                # Use mean time to failure to determine length of period 
+                # without failures from maintenance or start of operations
+                mttf_hours = 1 / failureRate * self.__yearDays * \
+                                                        self.__dayHours
+                first_failure = self.__startOperationDate + \
+                                                timedelta(hours=mttf_hours)  
+                                                
+                if failureDate < first_failure:
+                    
+                    foundDeleteFlag = True
+                    
+                else:
+                
+                    # sort of eventsTable
+                    dummyCaBaMaTable.sort_values(by='currentEndActionDate',
+                                                 inplace=True)
+                    
+                    # start index with 0
                     dummyCaBaMaTable.reset_index(drop=True, inplace=True)
 
                     for iCnt in range(0, len(dummyCaBaMaTable)):
@@ -3883,18 +3884,20 @@ class LCOE_Calculator(object):
                         secs = (repairActionEvents - enddate).total_seconds()
                         dummyTime = secs // 3600
 
-                        if dummyTime < self.__delayEventsAfterCaBaMaHour:
+                        if dummyTime < 0: break
+                        
+                        if dummyTime < mttf_hours:
                             foundDeleteFlag = True
                             break
 
-        if foundDeleteFlag == True:
-
-            self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
-
-            return (loop,
-                    loopValuesForOutput_UnCoMa,
-                    flagCalcCoBaMa,
-                    flagCalcUnCoMa)
+            if foundDeleteFlag == True:
+    
+                self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
+    
+                return (loop,
+                        loopValuesForOutput_UnCoMa,
+                        flagCalcCoBaMa,
+                        flagCalcUnCoMa)
 
         if self.__dtocean_maintenance_PRINT_FLAG == True:
 
