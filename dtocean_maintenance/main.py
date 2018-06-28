@@ -1517,40 +1517,48 @@ class LCOE_Calculator(object):
 
                 if self.__Farm_OM['calendar_based_maintenance'] == True:
 
+                    flagCaBaMa = True
+                    flagDummy = False
+
                     if 'device' in belongsTo:
                         belongsToSort = 'device'
                     else:
                         belongsToSort = belongsTo
 
-                    flagDummy = False
-                    
                     startActionDate = pd.to_datetime(
                             component['start_date_calendar_based_maintenance'])
                     endActionDate = pd.to_datetime(
                             component['end_date_calendar_based_maintenance'])
                     interval = component['interval_calendar_based_maintenance']
 
-                    flagCaBaMa = True
-
-                    if (self.__startOperationDate <= startActionDate and
-                        startActionDate <= self.__endOperationDate):
-
-                        startActionDateDummy = startActionDate
-                        endActionDateDummy = endActionDate
+                    n_days = interval * self.__yearDays
+                    startActionDateDummy = self.__startOperationDate + \
+                                                        timedelta(days=n_days)
+                    
+                    # Replace the initial action month if it lies outside the
+                    # desired range                        
+                    actionMonth = startActionDateDummy.month
+                                                    
+                    if (actionMonth < startActionDate.month or
+                        actionMonth > endActionDate.month):
                         
-                        n_days = interval * self.__yearDays
-
-                        startActionDateDummy = startActionDateDummy + \
-                                                        timedelta(days=n_days)
-                        endActionDateDummy = endActionDateDummy + \
-                                                        timedelta(days=n_days)
-                                                        
-                        while (startActionDateDummy < self.__endOperationDate):
+                        mid_month = (startActionDate.month +
+                                                 endActionDate.month) / 2
+                        
+                        startActionDateDummy = startActionDateDummy.replace(
+                                                              month=mid_month)
+                        actionMonth = mid_month
+                       
+                    while (startActionDateDummy < self.__endOperationDate):
+                        
+                        # Skip if action is outside of operational months
+                        if (actionMonth >= startActionDate.month and
+                            actionMonth <= endActionDate.month):
 
                             values = [startActionDateDummy,
-                                      endActionDateDummy,
                                       startActionDateDummy,
-                                      endActionDateDummy,
+                                      startActionDateDummy,
+                                      startActionDateDummy,
                                       belongsTo,
                                       belongsToSort,
                                       ComponentType,
@@ -1561,15 +1569,14 @@ class LCOE_Calculator(object):
                                       RA_ID,
                                       0,
                                       0]
-
+    
                             self.__CaBaMa_eventsTable.ix[loopCalendar] = values
-
-                            startActionDateDummy = startActionDateDummy + \
-                                                        timedelta(days=n_days)
-                            endActionDateDummy = endActionDateDummy + \
-                                                        timedelta(days=n_days)
-                                                        
+                            
                             loopCalendar = loopCalendar + 1
+
+                        startActionDateDummy = startActionDateDummy + \
+                                                    timedelta(days=n_days)
+                        actionMonth = startActionDateDummy.month
 
                 if self.__Farm_OM['condition_based_maintenance'] == True:
 
@@ -3238,7 +3245,7 @@ class LCOE_Calculator(object):
                                 dummyCaBaMaTable.currentStartActionDate[bidx]
 
             actiondt = datetime.datetime.strptime(str(currentStartActionDate),
-                                                  self.__strFormat2)
+                                                  self.__strFormat3)
 
             # Date of logistic request
             self.__repairActionDate = actiondt
