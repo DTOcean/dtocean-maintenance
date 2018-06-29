@@ -4524,18 +4524,15 @@ class LCOE_Calculator(object):
 
         '''
 
-        belongsTo        = self.__UnCoMa_eventsTable.belongsTo[0]
-        ComponentID      = self.__UnCoMa_eventsTable.ComponentID[0]
-
-        #array = self.__arrayDict
-        #event = self.__UnCoMa_eventsTable
+        idx = self.__actIdxOfUnCoMa
+        belongsTo = self.__UnCoMa_eventsTable.belongsTo[idx]
+        ComponentID = self.__UnCoMa_eventsTable.ComponentID[idx]
 
         if (belongsTo == 'Array' and
             'All' in self.__arrayDict[ComponentID]['Breakdown']):
 
             # shift of the rows of eventTables
-            for iCnt in range(self.__actIdxOfUnCoMa + 1,
-                              len(self.__UnCoMa_eventsTable)):
+            for iCnt in range(idx + 1, len(self.__UnCoMa_eventsTable)):
 
                 shiftDate = self.__UnCoMa_eventsTable.failureEvents[iCnt] + \
                                     timedelta(hours=self.__totalSeaTimeHour)
@@ -4553,8 +4550,7 @@ class LCOE_Calculator(object):
         else:
 
             # shift of the rows of eventTables
-            for iCnt in range(self.__actIdxOfUnCoMa + 1,
-                              len(self.__UnCoMa_eventsTable)):
+            for iCnt in range(idx + 1, len(self.__UnCoMa_eventsTable)):
 
                 if not (self.__UnCoMa_eventsTable.loc[
                          iCnt, 'ComponentID'] == ComponentID and
@@ -4576,12 +4572,14 @@ class LCOE_Calculator(object):
                 self.__UnCoMa_eventsTable.loc[iCnt,
                                               'repairActionEvents'] = shiftDate
 
-        # sort of eventsTable
-        self.__UnCoMa_eventsTable.sort_values(by='repairActionEvents',
-                                              inplace=True)
+        # sort of eventsTable after current index
+        nidx = idx + 1
+        newTable = self.__UnCoMa_eventsTable[:nidx]
+        endSort = self.__UnCoMa_eventsTable[nidx:].sort_values(
+                                                    by='repairActionEvents')
         
-        # start index with 0
-        self.__UnCoMa_eventsTable.reset_index(drop=True, inplace=True)
+        self.__UnCoMa_eventsTable = newTable.append(endSort,
+                                                    ignore_index=True)
 
         return
 
