@@ -2689,7 +2689,8 @@ class LCOE_Calculator(object):
 #
 #            optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-        self.__totalSeaTimeHour = optimal['schedule sea time']
+        self.__totalSeaTimeHour = optimal['schedule sea time'] + \
+                                            optimal['schedule waiting time']
 
         downsecs = (self.__endOpDate - currentEndDate).total_seconds()
         totalDownTimeHours = downsecs // 3600
@@ -3522,7 +3523,8 @@ class LCOE_Calculator(object):
 #                self.__totalSeaTimeHour = secs // 3600
 #                optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-            self.__totalSeaTimeHour = optimal['schedule sea time']
+            self.__totalSeaTimeHour = optimal['schedule sea time'] + \
+                                            optimal['schedule waiting time']
             
             operation_time = optimal['schedule sea operation time']
             transit_time = optimal['schedule sea transit time']
@@ -4104,7 +4106,8 @@ class LCOE_Calculator(object):
 #            self.__totalSeaTimeHour = secs // 3600
 #            optimal['schedule sea time'] = self.__totalSeaTimeHour
 
-        self.__totalSeaTimeHour = optimal['schedule sea time']
+        self.__totalSeaTimeHour = optimal['schedule sea time'] + \
+                                            optimal['schedule waiting time']
 
         secs = (self.__endOpDate - failureDate).total_seconds()
         totalDownTimeHours = secs // 3600
