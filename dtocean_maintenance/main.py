@@ -3748,6 +3748,7 @@ class LCOE_Calculator(object):
         failureEvents = self.__UnCoMa_eventsTable.failureEvents[idx]
         repairActionEvents = self.__UnCoMa_eventsTable.repairActionEvents[idx]
         failureRate = self.__UnCoMa_eventsTable.failureRate[idx]
+        indexFM = self.__UnCoMa_eventsTable.indexFM[self.__actIdxOfUnCoMa]
 
         # simulate or not
         simulateFlag = True
@@ -3775,54 +3776,15 @@ class LCOE_Calculator(object):
                     loopValuesForOutput_UnCoMa,
                     flagCalcCoBaMa,
                     flagCalcUnCoMa)
-
-        # delay of repairActionEvents in repair plan
-        if self.__totalActionDelayHour < 0:
-            shiftDate = self.__UnCoMa_eventsTable.loc[idx,
-                                                      'repairActionEvents'] + \
-                                  timedelta(hours=-self.__totalActionDelayHour)
-            self.__UnCoMa_eventsTable.loc[idx,
-                                          'repairActionEvents'] = shiftDate
-            repairActionEvents = \
-                self.__UnCoMa_eventsTable.repairActionEvents[idx]
-
-        # failureEvents        
+            
+        # Date of failure event      
         try:
             failureDate = datetime.datetime.strptime(str(failureEvents),
                                                      self.__strFormat3)
         except ValueError:
             failureDate = datetime.datetime.strptime(str(failureEvents),
                                                      self.__strFormat2)
-
-        # Date of logistic request
-        try:
-            repairdate = datetime.datetime.strptime(str(repairActionEvents),
-                                                    self.__strFormat3)
-        except ValueError:
-            repairdate = datetime.datetime.strptime(str(repairActionEvents),
-                                                    self.__strFormat2)
-        
-        self.__repairActionDate = repairdate
-
-        repairActionDateStr = repairActionEvents.strftime(self.__strFormat1)
-        indexFM = self.__UnCoMa_eventsTable.indexFM[self.__actIdxOfUnCoMa]
-        CompIDWithIndex = ComponentID + '_' + str(indexFM)
-
-        # break the while loop if repairActionDate is greater than
-        # self.__endOperationDate
-        if self.__endOperationDate < self.__repairActionDate:
-
-            flagCalcUnCoMa = False
-            loop = 0
-
-            if self.__Farm_OM['condition_based_maintenance'] == True:
-                flagCalcCoBaMa = True
-
-            return (loop,
-                    loopValuesForOutput_UnCoMa,
-                    flagCalcCoBaMa,
-                    flagCalcUnCoMa)
-
+            
         # Check for nullification of failure from CaBaMa
         if self.__Farm_OM['calendar_based_maintenance'] == True:
             
@@ -3899,6 +3861,62 @@ class LCOE_Calculator(object):
                         loopValuesForOutput_UnCoMa,
                         flagCalcCoBaMa,
                         flagCalcUnCoMa)
+            
+        # Should the next operation be shifted? 
+        if (loopValuesForOutput_UnCoMa > 0 and
+            self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1):
+
+            next_rep = self.__UnCoMa_eventsTable.repairActionEvents[idx] + \
+                                  timedelta(hours=-self.__totalActionDelayHour)
+                                  
+            secs = (next_rep - self.__endOpDate).total_seconds()
+            self.__actActionDelayHour = secs // 3600
+            
+            new_action_delay = self.__totalActionDelayHour + \
+                                                    self.__actActionDelayHour
+                                                                
+            if new_action_delay < 0:
+                self.__totalActionDelayHour = new_action_delay
+            else:
+                self.__totalActionDelayHour = 0.
+
+        # delay of repairActionEvents in repair plan
+        if self.__totalActionDelayHour < 0:
+            shiftDate = self.__UnCoMa_eventsTable.loc[idx,
+                                                      'repairActionEvents'] + \
+                                  timedelta(hours=-self.__totalActionDelayHour)
+            self.__UnCoMa_eventsTable.loc[idx,
+                                          'repairActionEvents'] = shiftDate
+            repairActionEvents = \
+                self.__UnCoMa_eventsTable.repairActionEvents[idx]
+
+        # Date of logistic request
+        try:
+            repairdate = datetime.datetime.strptime(str(repairActionEvents),
+                                                    self.__strFormat3)
+        except ValueError:
+            repairdate = datetime.datetime.strptime(str(repairActionEvents),
+                                                    self.__strFormat2)
+        
+        self.__repairActionDate = repairdate
+
+        repairActionDateStr = repairActionEvents.strftime(self.__strFormat1)
+        CompIDWithIndex = ComponentID + '_' + str(indexFM)
+
+        # break the while loop if repairActionDate is greater than
+        # self.__endOperationDate
+        if self.__endOperationDate < self.__repairActionDate:
+
+            flagCalcUnCoMa = False
+            loop = 0
+
+            if self.__Farm_OM['condition_based_maintenance'] == True:
+                flagCalcCoBaMa = True
+
+            return (loop,
+                    loopValuesForOutput_UnCoMa,
+                    flagCalcCoBaMa,
+                    flagCalcUnCoMa)
 
         if self.__dtocean_maintenance_PRINT_FLAG == True:
 
@@ -4177,24 +4195,6 @@ class LCOE_Calculator(object):
         # Update poisson events in eventTables as device downtime increases
         # lifetime of components
         self.__updatePoissonEvents()
-        
-        # Should the next operation be shifted? 
-        if self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1:
-
-            nidx = self.__actIdxOfUnCoMa + 1
-            next_rep = self.__UnCoMa_eventsTable.repairActionEvents[nidx] + \
-                                  timedelta(hours=-self.__totalActionDelayHour)
-            
-            secs = (next_rep - self.__endOpDate).total_seconds()
-            self.__actActionDelayHour = secs // 3600
-            
-            new_action_delay = self.__totalActionDelayHour + \
-                                                    self.__actActionDelayHour
-            
-            if new_action_delay < 0:
-                self.__totalActionDelayHour = new_action_delay
-            else:
-                self.__totalActionDelayHour = 0.
 
         # for environmental team
         self.__env_assess(loop,
