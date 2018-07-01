@@ -3803,50 +3803,49 @@ class LCOE_Calculator(object):
             interval > 0):
             
             foundDeleteFlag = False
-
-            # find the blocks in CaBaMa
-            if 'device' in ComponentType:
-                CaBaMaTableQueryDeviceID  = ComponentType
-                CaBaMaTableQuerySubSystem = ComponentSubType
-
-            elif 'subhub' in ComponentType:
-                CaBaMaTableQueryDeviceID = ComponentType
-
-            else:
-                CaBaMaTableQueryDeviceID  = 'Array'
-                CaBaMaTableQuerySubSystem = ComponentType[0:-3]
-
-            if 'subhub' in ComponentType:
-
-                dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
-                     (self.__CaBaMa_eventsTable['ComponentType'] == \
-                                             CaBaMaTableQueryDeviceID) & \
-                     (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
-                     (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
-
-            else:
-
-                dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
-                        (self.__CaBaMa_eventsTable['RA_ID'] == RA_ID) & \
-                        (self.__CaBaMa_eventsTable['ComponentSubType'] == \
-                                             CaBaMaTableQuerySubSystem) & \
-                        (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
-                        (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+            
+            # Use mean time to failure to determine length of period 
+            # without failures from maintenance or start of operations
+            mttf_hours = 1 / failureRate * self.__yearDays * self.__dayHours
+            first_failure = self.__startOperationDate + \
+                                                    timedelta(hours=mttf_hours)
+                                            
+            if failureDate < first_failure:
                 
-            if len(dummyCaBaMaTable) > 1:
+                foundDeleteFlag = True
                 
-                # Use mean time to failure to determine length of period 
-                # without failures from maintenance or start of operations
-                mttf_hours = 1 / failureRate * self.__yearDays * \
-                                                        self.__dayHours
-                first_failure = self.__startOperationDate + \
-                                                timedelta(hours=mttf_hours)  
-                                                
-                if failureDate < first_failure:
-                    
-                    foundDeleteFlag = True
-                    
+            else:
+                
+                # find the blocks in CaBaMa
+                if 'device' in ComponentType:
+                    CaBaMaTableQueryDeviceID  = ComponentType
+                    CaBaMaTableQuerySubSystem = ComponentSubType
+    
+                elif 'subhub' in ComponentType:
+                    CaBaMaTableQueryDeviceID = ComponentType
+    
                 else:
+                    CaBaMaTableQueryDeviceID  = 'Array'
+                    CaBaMaTableQuerySubSystem = ComponentType[0:-3]
+    
+                if 'subhub' in ComponentType:
+    
+                    dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
+                         (self.__CaBaMa_eventsTable['ComponentType'] == \
+                                                 CaBaMaTableQueryDeviceID) & \
+                         (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
+                         (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+    
+                else:
+    
+                    dummyCaBaMaTable = self.__CaBaMa_eventsTable.loc[
+                            (self.__CaBaMa_eventsTable['RA_ID'] == RA_ID) & \
+                            (self.__CaBaMa_eventsTable['ComponentSubType'] == \
+                                                 CaBaMaTableQuerySubSystem) & \
+                            (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
+                            (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
+                    
+                if len(dummyCaBaMaTable) > 1:                
                 
                     # sort of eventsTable
                     dummyCaBaMaTable.sort_values(by='currentEndActionDate',
