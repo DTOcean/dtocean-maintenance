@@ -1509,10 +1509,15 @@ class LCOE_Calculator(object):
                 
                 component = self.__Component[ComponentID]
                 component = component.apply(pd.to_numeric, errors="ignore")
+                interval = component['interval_calendar_based_maintenance']
+                threshold_percent = component['soh_threshold']
                 
                 flagCaBaMa = False
 
-                if self.__Farm_OM['calendar_based_maintenance'] == True:
+                # If interval is zero or less then no calendar maintenance is 
+                # requested
+                if (self.__Farm_OM['calendar_based_maintenance'] == True and
+                    interval > 0):
 
                     flagCaBaMa = True
                     flagDummy = False
@@ -1526,7 +1531,6 @@ class LCOE_Calculator(object):
                             component['start_date_calendar_based_maintenance'])
                     endActionDate = pd.to_datetime(
                             component['end_date_calendar_based_maintenance'])
-                    interval = component['interval_calendar_based_maintenance']
 
                     n_days = interval * self.__yearDays
                     startActionDateDummy = self.__startOperationDate + \
@@ -1575,14 +1579,18 @@ class LCOE_Calculator(object):
                                                     timedelta(days=n_days)
                         actionMonth = startActionDateDummy.month
 
-                if self.__Farm_OM['condition_based_maintenance'] == True:
+                # If percentage threshold is zero or less no condition based 
+                # maintenance is requested
+                if (self.__Farm_OM['condition_based_maintenance'] == True and
+                    threshold_percent > 0):
 
                     flagDummy = False
                     startActionDate = pd.to_datetime(
                             component['start_date_calendar_based_maintenance'])
                     endActionDate = pd.to_datetime(
                             component['end_date_calendar_based_maintenance'])
-                    threshold = component['soh_threshold'] / 100.0
+                                        
+                    threshold = threshold_percent / 100.0
 
                     if (0 < threshold > 1 or
                         math.isnan(threshold) or
@@ -3785,8 +3793,14 @@ class LCOE_Calculator(object):
             failureDate = datetime.datetime.strptime(str(failureEvents),
                                                      self.__strFormat2)
             
-        # Check for nullification of failure from CaBaMa
-        if self.__Farm_OM['calendar_based_maintenance'] == True:
+        # Check for nullification of failure from CaBaMa if the interval is
+        # greater than zero
+        component = self.__Component[ComponentID]
+        component = component.apply(pd.to_numeric, errors="ignore")
+        interval = component['interval_calendar_based_maintenance']
+
+        if (self.__Farm_OM['calendar_based_maintenance'] == True and
+            interval > 0):
             
             foundDeleteFlag = False
 
