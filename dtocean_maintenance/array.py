@@ -790,5 +790,19 @@ class Array(object):
                    self.__ramTableKeys[3]: ramBreakDownList}
 
         self.__ramTable = pd.DataFrame(ramData)
-
+        
+        # Patch double counting of umbilical cable
+        dynamic_search = (self.__ramTable['subSystem'] ==
+                                              "M&F sub-system dynamic cable")
+        array_elec_search = (self.__ramTable['subSystem'] == 
+                                                     "Array elec sub-system")
+        
+        if dynamic_search.any() and array_elec_search.any():
+            
+            umbilical_fr = self.__ramTable.loc[dynamic_search,
+                                               "failureRate"].iloc[0]
+            fix = self.__ramTable.loc[array_elec_search,
+                                      "failureRate"] - umbilical_fr
+            self.__ramTable.loc[array_elec_search, "failureRate"] = fix
+        
         return
