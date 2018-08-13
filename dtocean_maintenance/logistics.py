@@ -155,10 +155,10 @@ def om_logistics_main(vessels_0,
 
     # Collecting relevant port information
 
-    om_port_index = om['Port_Index [-]'].ix[0]
-#    om_port_distance = om['Dist_port [km]'].ix[0]
+    om_port_index = om['Port_Index [-]'].iloc[0]
+#    om_port_distance = om['Dist_port [km]'].iloc[0]
     om_port = {}
-    om_port['Selected base port for installation'] = ports.ix[om_port_index]
+    om_port['Selected base port for installation'] = ports.iloc[om_port_index]
 
     # Check the presence of the lease area entry point
     

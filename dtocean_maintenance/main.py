@@ -1393,7 +1393,7 @@ class LCOE_Calculator(object):
                           sp_width,
                           sp_height]
 
-                self.__errorTable.ix[0] = values
+                self.__errorTable.iloc[0] = values
 
                 # noError
                 self.__outputsOfWP6['error [-]'] = self.__errorTable
@@ -1427,7 +1427,7 @@ class LCOE_Calculator(object):
                   sp_width,
                   sp_height]
 
-        self.__errorTable.ix[0] = values
+        self.__errorTable.iloc[0] = values
 
         # noError
         self.__outputsOfWP6['error [-]'] = self.__errorTable
@@ -1571,7 +1571,8 @@ class LCOE_Calculator(object):
                                       0,
                                       0]
     
-                            self.__CaBaMa_eventsTable.ix[loopCalendar] = values
+                            self.__CaBaMa_eventsTable.loc[loopCalendar] = \
+                                                                        values
                             
                             loopCalendar = loopCalendar + 1
 
@@ -1645,7 +1646,7 @@ class LCOE_Calculator(object):
                                       threshold,
                                       failureRateDummy,
                                       flagCaBaMa]
-                            self.__CoBaMa_eventsTable.ix[loopCondition] = \
+                            self.__CoBaMa_eventsTable.loc[loopCondition] = \
                                                                         values
 
                             loopCondition = loopCondition + 1
@@ -1843,9 +1844,9 @@ class LCOE_Calculator(object):
                   '',
                   '',
                   '',
-                  self.__entry_point['x coord [m]'].ix[0],
-                  self.__entry_point['y coord [m]'].ix[0],
-                  self.__entry_point['zone [-]'].ix[0],
+                  self.__entry_point['x coord [m]'].iloc[0],
+                  self.__entry_point['y coord [m]'].iloc[0],
+                  self.__entry_point['zone [-]'].iloc[0],
                   '',
                   '',
                   '',
@@ -1869,7 +1870,7 @@ class LCOE_Calculator(object):
                   '',
                   0]
 
-        outputsForPortSelection.ix[0] = values
+        outputsForPortSelection.iloc[0] = values
 
         om_port = select_port_OM.OM_port(outputsForPortSelection,
                                          self.__ports)
@@ -1888,9 +1889,9 @@ class LCOE_Calculator(object):
                   '',
                   '',
                   '',
-                  self.__entry_point['x coord [m]'].ix[0],
-                  self.__entry_point['y coord [m]'].ix[0],
-                  self.__entry_point['zone [-]'].ix[0],
+                  self.__entry_point['x coord [m]'].iloc[0],
+                  self.__entry_point['y coord [m]'].iloc[0],
+                  self.__entry_point['zone [-]'].iloc[0],
                   '',
                   '',
                   '',
@@ -1914,7 +1915,7 @@ class LCOE_Calculator(object):
                   '',
                   0]
 
-        outputsForPortSelection.ix[0] = values
+        outputsForPortSelection.iloc[0] = values
 
         # Port Selection based on input
         om_port = select_port_OM.OM_port(outputsForPortSelection,
@@ -2106,7 +2107,7 @@ class LCOE_Calculator(object):
                       ]
 
             #self.__om_logistic_outputs = pd.DataFrame(index=[0],columns=keys)
-            self.__wp6_outputsForLogistic.ix[0] = values
+            self.__wp6_outputsForLogistic.iloc[0] = values
 
             # apply dafety factors in vessels parameters
             (ports,
@@ -2120,11 +2121,11 @@ class LCOE_Calculator(object):
 
             # Collecting relevant port information
             om_port_index = \
-                self.__wp6_outputsForLogistic['Port_Index [-]'].ix[0]
+                self.__wp6_outputsForLogistic['Port_Index [-]'].iloc[0]
 
             om_port = {}
             om_port['Selected base port for installation'] = \
-                                                ports.ix[om_port_index]
+                                                ports.iloc[om_port_index]
                                                 
                                                 
             # Convert to numeric if possible
@@ -2278,7 +2279,7 @@ class LCOE_Calculator(object):
                           sp_width,
                           sp_height]
 
-                self.__errorTable.ix[iCnt] = values
+                self.__errorTable.loc[iCnt] = values
 
         return
 
@@ -2617,7 +2618,7 @@ class LCOE_Calculator(object):
                   Soil_type,
                   self.__PrepTimeCalcCoBaMa]
 
-        self.__wp6_outputsForLogistic.ix[0] = values
+        self.__wp6_outputsForLogistic.iloc[0] = values
 
         # Calc logistic functions
         start_time_logistic = timeit.default_timer()
@@ -3002,7 +3003,7 @@ class LCOE_Calculator(object):
                                int(omCostValueSpare),
                                vessel_name]
 
-            self.__CoBaMa_outputEventsTable.ix[
+            self.__CoBaMa_outputEventsTable.loc[
                                 loopValuesForOutput_CoBaMa] = valuesForOutput
             self.__CoBaMa_outputEventsTable.loc[
                                 loopValuesForOutput_CoBaMa,
@@ -3042,7 +3043,7 @@ class LCOE_Calculator(object):
                                                 self.__actIdxOfCoBaMa, :]
 
                 # new line for the extension of CoBaMa
-                self.__CoBaMa_eventsTable.ix[lidx] = copy.deepcopy(current)
+                self.__CoBaMa_eventsTable.loc[lidx] = copy.deepcopy(current)
 
                 newLineCurrentEndDate = series[index]
 
@@ -3453,7 +3454,7 @@ class LCOE_Calculator(object):
                           self.__PrepTimeCalcCaBaMa
                           ]
 
-                self.__wp6_outputsForLogistic.ix[iCnt1] = values
+                self.__wp6_outputsForLogistic.loc[iCnt1] = values
 
                 # end of calandar based maintenance
                 self.__actIdxOfCaBaMa = self.__actIdxOfCaBaMa + 1
@@ -3703,7 +3704,7 @@ class LCOE_Calculator(object):
                                    round(omCostValueSpare, 2),
                                    vessel_name]
 
-                self.__CaBaMa_outputEventsTable.ix[
+                self.__CaBaMa_outputEventsTable.loc[
                         loopValuesForOutput_CaBaMa] = valuesForOutput
                 self.__CaBaMa_outputEventsTable.loc[
                                         loopValuesForOutput_CaBaMa,
@@ -4080,7 +4081,7 @@ class LCOE_Calculator(object):
                   self.__PrepTimeCalcUnCoMa
                   ]
 
-        self.__wp6_outputsForLogistic.ix[0] = values
+        self.__wp6_outputsForLogistic.iloc[0] = values
 
         # Calc logistic functions
         start_time_logistic = timeit.default_timer()
@@ -4238,7 +4239,7 @@ class LCOE_Calculator(object):
                            int(omCostValueSpare),
                            vessel_name]
 
-        self.__UnCoMa_outputEventsTable.ix[loopValuesForOutput_UnCoMa] = \
+        self.__UnCoMa_outputEventsTable.loc[loopValuesForOutput_UnCoMa] = \
                                                             valuesForOutput
         
         self.__UnCoMa_outputEventsTable.set_value(loopValuesForOutput_UnCoMa,
