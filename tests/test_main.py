@@ -16,11 +16,13 @@ from dtocean_maintenance.main import LCOE_Statistics
 @pytest.fixture
 def data_point():
     
-    data_point = {"arrayAvailability [-]": 0.578920950713,
+    data_point = {"lifetimeOpex [Euro]": 10674780.0,
                   "lifetimeEnergy [Wh]": 139850176684.0,
-                  "numberOfJourneys [-]": 15,
+                  "LCOEOpex [Euro/kWh]": 0.15,
                   "arrayDowntime [hour]": 73824.0,
-                  "lifetimeOpex [Euro]": 10674780.0,
+                  "arrayAvailability [-]": 0.578920950713,
+                  "numberOfJourneys [-]": 15,
+                  "CapexOfArray [Euro]": 1.,
                   "OpexPerYear [Euro]": pd.DataFrame(
                         {'Cost': {0: 0.0,
                                   1: 10287391.0,
@@ -117,20 +119,29 @@ def data_point():
                   "energyPerDevice [Wh]": {'device001': 72861369134.400009,
                                            'device002': 37109136615.210007,
                                            'device003': 29879670934.079998},
-                  'eventTables [-]': None,
-                  "CapexOfArray [Euro]": 1.
+                  'eventTables [-]': None
                   }
                   
     return data_point
 
 
-def test_LCOE_Statistics_main(mocker, data_point):
+@pytest.fixture
+def logistics_param():
+    
+    logistics_param = {"metocean": None}
+                  
+    return logistics_param
+
+
+def test_LCOE_Statistics_main(mocker, data_point, logistics_param):
     
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
                  return_value=None)
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
                  return_value=data_point)
-    
+    mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
+                 'WaitingTime.__init__',
+                 return_value=None)
     n_sims = 5
     control = inputOM(None,
                       None,
@@ -138,7 +149,7 @@ def test_LCOE_Statistics_main(mocker, data_point):
                       None,
                       None,
                       None,
-                      None,
+                      logistics_param,
                       None,
                       {'numberOfSimulations': n_sims})
     
@@ -163,13 +174,15 @@ def test_LCOE_Statistics_main(mocker, data_point):
     assert len(result["energyPerDevice [Wh]"]) == 3
     
     
-def test_LCOE_Statistics_call(mocker, data_point):
+def test_LCOE_Statistics_call(mocker, data_point, logistics_param):
     
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
                  return_value=None)
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
                  return_value=data_point)
-    
+    mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
+                 'WaitingTime.__init__',
+                 return_value=None)    
     n_sims = 5
     control = inputOM(None,
                       None,
@@ -177,7 +190,7 @@ def test_LCOE_Statistics_call(mocker, data_point):
                       None,
                       None,
                       None,
-                      None,
+                      logistics_param,
                       None,
                       {'numberOfSimulations': n_sims})
     
@@ -185,27 +198,3 @@ def test_LCOE_Statistics_call(mocker, data_point):
     test()
     
     assert True
-    
-    
-def test_LCOE_Statistics_call_interrupt(mocker):
-    
-    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
-                 return_value=None)
-    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
-                 side_effect=KeyboardInterrupt)
-    
-    n_sims = 5
-    control = inputOM(None,
-                      None,
-                      None,
-                      None,
-                      None,
-                      None,
-                      None,
-                      None,
-                      {'numberOfSimulations': n_sims})
-    
-    test = LCOE_Statistics(control)
-
-    with pytest.raises(SystemExit):
-            test()
