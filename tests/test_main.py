@@ -174,6 +174,32 @@ def test_LCOE_Statistics_main(mocker, data_point, logistics_param):
     assert len(result["energyPerDevice [Wh]"]) == 3
     
     
+def test_LCOE_Statistics_main_no_sims(mocker, data_point, logistics_param):
+    
+    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
+                 return_value=data_point)
+    mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
+                 'WaitingTime.__init__',
+                 return_value=None)
+    n_sims = 0
+    control = inputOM(None,
+                      None,
+                      None,
+                      None,
+                      None,
+                      None,
+                      logistics_param,
+                      None,
+                      {'numberOfSimulations': n_sims})
+    
+    test = LCOE_Statistics(control)
+    
+    with pytest.raises(ValueError):
+        test.main()
+    
+    
 def test_LCOE_Statistics_call(mocker, data_point, logistics_param):
     
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',

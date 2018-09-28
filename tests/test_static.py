@@ -882,6 +882,19 @@ def test_get_number_of_journeys(events_tables_dict):
     assert total_ops == 34
     
     
+def test_get_number_of_journeys_all(events_tables_dict):
+    
+    all_events = events_tables_dict["UnCoMa_eventsTable"].copy()
+    
+    events_tables_dict_copy = {"CoBaMa_eventsTable": all_events,
+                               "CaBaMa_eventsTable": all_events,
+                               "UnCoMa_eventsTable": all_events}
+    
+    total_ops = get_number_of_journeys(events_tables_dict_copy)
+    
+    assert total_ops == 102
+    
+    
 def test_Availability_init(availability):
     
     assert availability._max_uptime
