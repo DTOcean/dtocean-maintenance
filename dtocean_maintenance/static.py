@@ -129,7 +129,7 @@ class Energy(object):
         year_idxs = range(n_years)
         year_map = {year: idx for year, idx in zip(years, year_idxs)}
         
-        array_energy_df = self._device_energy_df[["Year", "Energy"]]
+        array_energy_df = self._device_energy_df.loc[:, ["Year", "Energy"]]
         array_energy_df["Year"] = array_energy_df["Year"].replace(year_map)
         array_energy_df = array_energy_df.set_index("Year")
         
@@ -175,10 +175,10 @@ def get_uptime_df(commissioning_date,
     
     for event_df in events_tables_dict.itervalues():
                     
-        repair_df = event_df[["repairActionRequestDate [-]",
-                              "repairActionDate [-]",
-                              "downtimeDuration [Hour]",
-                              'downtimeDeviceList [-]']]
+        repair_df = event_df.loc[:, ["repairActionRequestDate [-]",
+                                     "repairActionDate [-]",
+                                     "downtimeDuration [Hour]",
+                                     'downtimeDeviceList [-]']]
         repair_df["repairActionRequestDate [-]"] = pd.to_datetime(
                                 repair_df["repairActionRequestDate [-]"])
         repair_df["repairActionDate [-]"] = pd.to_datetime(
@@ -291,7 +291,7 @@ def get_opex_per_year(start_date,
                             comp_df[["costLogistic [Euro]",
                                      "costOM_Labor [Euro]",
                                      "costOM_Spare [Euro]"]].sum(axis=1)
-            comp_df = comp_df.convert_objects(convert_numeric=True)
+            comp_df = comp_df.apply(pd.to_numeric)
             comp_df = comp_df.resample("A").sum()
             comp_df.index = comp_df.index.map(lambda x: x.year)
             comp_df = comp_df.dropna()
