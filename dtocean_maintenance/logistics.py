@@ -1,8 +1,22 @@
-"""
-@author: WavEC Offshore Renewables, Mathew Topper
-email: boris.teillant@wavec.org; paulo@wavec.org, pedro.vicente@wavec.org,
-       dataonlygreater@gmail.com
+# -*- coding: utf-8 -*-
 
+#    Copyright (C) 2016 Boris Teillant, Paulo Chainho, Pedro Vicente
+#    Copyright (C) 2017-2018 Mathew Topper
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
 This is the logistics assesmment module.
 
 The module provides an estimation of the predicted performance of feasible
@@ -22,6 +36,14 @@ The module can be described in different core sub-modules:
     (ii) selection of the maritime infrastructure
     (iii) schedule assessment of the logistic phase
     (iv) cost assessment of the logistic phase
+    
+.. module:: logistics
+    :platform: Windows
+
+.. moduleauthor:: Boris Teillant <boris.teillant@wavec.org>
+.. moduleauthor:: Paulo Chainho <paulo@wavec.org>
+.. moduleauthor:: Pedro Vicente <pedro.vicente@wavec.org>
+.. moduleauthor:: Mathew Topper <mathew.topper@dataonlygreater.com>
 """
 
 import timeit
