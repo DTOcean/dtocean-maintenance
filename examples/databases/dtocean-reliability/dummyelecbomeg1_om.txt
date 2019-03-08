@@ -1,7 +1,0 @@
-{'array': {'Substation': {'quantity': Counter({'id3': 1})}, 'Export cable': {'quantity': Counter({'id6': 1, 'id4': 1})}},  
-'device001': {'quantity': Counter({'id6': 1, 'id7': 2,})},
-'device002': {'quantity': Counter({'id6': 1, 'id7': 2,})},
-'device003': {'quantity': Counter({'id6': 1, 'id7': 2, 'id4': 1})},
-'device004': {'quantity': Counter({'id6': 1, 'id7': 2,})},
-'device005': {'quantity': Counter({'id6': 1, 'id7': 2,})},
-'device006': {'quantity': Counter({'id6': 1, 'id7': 2, 'id4': 1})}}

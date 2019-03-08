@@ -1,6 +1,0 @@
-{'device001': {'Power take off system': {'quantity': Counter({'id17': 1})}},
-'device002': {'Power take off system': {'quantity': Counter({'id17': 1})}},
-'device003': {'Power take off system': {'quantity': Counter({'id17': 1})}},
-'device004': {'Power take off system': {'quantity': Counter({'id17': 1})}},
-'device005': {'Power take off system': {'quantity': Counter({'id17': 1})}},
-'device006': {'Power take off system': {'quantity': Counter({'id17': 1})}}}
