@@ -279,7 +279,7 @@ def test():
     Simu_Param['startOperationDate'] = datetime.datetime(2016,01,01)
     
     # missionTime [year]
-    Simu_Param['missionTime'] = 20.0
+    Simu_Param['missionTime'] = 5.0
     
     # Number of devives [-]
     Simu_Param['Nbodies'] = 3

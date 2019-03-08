@@ -1,6 +1,0 @@
-{'device001': {'Power take off system': ['id17']},
-'device002': {'Power take off system': ['id17']},
-'device003': {'Power take off system': ['id17']},
-'device004': {'Power take off system': ['id17']},
-'device005': {'Power take off system': ['id17']},
-'device006': {'Power take off system': ['id17']}}
