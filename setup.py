@@ -74,18 +74,16 @@ class CleanPyc(Command):
 
 
 setup(name='dtocean-maintenance',
-      version='1.1.dev2',
+      version='2.0.0',
       description='The maintenance operations module for the DTOcean tools',
-      author=('Bahram Panahandeh, '
-              'Mathew Topper'),
-      author_email=('bahram.panahandeh@iwes.fraunhofer.de, '
-                    'damm_horse@yahoo.co.uk'),
+      maintainer='Mathew Topper',
+      maintainer_email='mathew.topper@dataonlygreater.com',
       license="GPLv3",
       packages=find_packages(),
       install_requires=[
-          'dtocean-economics==1.1.dev1',
-          'dtocean-logistics==1.1.dev3',
-          'dtocean-reliability==1.1.dev1',
+          'dtocean-economics==2.0.0',
+          'dtocean-logistics==2.0.0',
+          'dtocean-reliability==2.0.0',
           'numpy',
           'pandas>=0.17'
       ],
