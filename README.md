@@ -1,6 +1,6 @@
 [![appveyor](https://ci.appveyor.com/api/projects/status/github/DTOcean/dtocean-maintenance?branch=master&svg=true)](https://ci.appveyor.com/project/DTOcean/dtocean-maintenance)
 [![codecov](https://codecov.io/gh/DTOcean/dtocean-maintenance/branch/master/graph/badge.svg)](https://codecov.io/gh/DTOcean/dtocean-maintenance)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bb34506cc82f4df883178a6e64619eaf)](https://www.codacy.com/project/H0R5E/dtocean-maintenance/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-maintenance&amp;utm_campaign=Badge_Grade_Dashboard&amp;branchId=8410911)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/996c77c622ec4bccadfde7eec4c2b14f)](https://www.codacy.com/project/H0R5E/dtocean-maintenance/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-maintenance&amp;utm_campaign=Badge_Grade_Dashboard&amp;branchId=11739760)
 [![release](https://img.shields.io/github/release/DTOcean/dtocean-maintenance.svg)](https://github.com/DTOcean/dtocean-maintenance/releases/latest)
 
 # DTOcean Operations and Maintenance Module
@@ -137,8 +137,8 @@ $ conda remove --name _dtocean_oandm --all
 Example scripts are available in the "examples" folder of the source code.
 
 ```
-cd examples
-python example.py
+$ cd examples
+$ python example.py
 ```
 
 ## Contributing
