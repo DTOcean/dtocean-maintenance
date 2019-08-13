@@ -2240,6 +2240,7 @@ class LCOE_Calculator(object):
                                               sp_height])
 
                 if self.__dtocean_maintenance_PRINT_FLAG == True:
+                    
                     print 'WP6: loop = ', loop
                     print 'WP6: ComponentID = ', ComponentID
                     print 'WP6: RA_ID = ', RA_ID
@@ -3286,7 +3287,7 @@ class LCOE_Calculator(object):
 
         if divModBlockNumber[1] > 0:
             blockNumberList.append(divModBlockNumber[1])
-            
+        
         for iCnt in range(0, len(blockNumberList)):
 
             bidx = iCnt * self.__CaBaMa_nrOfMaxActions
@@ -3294,7 +3295,7 @@ class LCOE_Calculator(object):
             blockNumber = blockNumberList[iCnt]
             currentStartActionDate = \
                                 dummyCaBaMaTable.currentStartActionDate[bidx]
-
+            
             actiondt = datetime.datetime.strptime(str(currentStartActionDate),
                                                   self.__strFormat3)
 
@@ -3337,7 +3338,7 @@ class LCOE_Calculator(object):
                 belongsTo = dummyCaBaMaTable.belongsTo[aindx]
                 ComponentID = dummyCaBaMaTable.ComponentID[aindx]
                 CompIDWithIndex = ComponentID + '_' + str(indexFM)
-
+                
                 ComponentType = dummyCaBaMaTable.ComponentType[aindx]
                 ComponentSubType = dummyCaBaMaTable.ComponentSubType[aindx]
 
@@ -3565,7 +3566,7 @@ class LCOE_Calculator(object):
             
             operation_action_date = self.__departOpDate + \
                                     datetime.timedelta(hours=transit_time)
-                                    
+            
             if np.isnan(operation_time):
                 
                 errStr = "Operation time is NaN"
@@ -4718,5 +4719,5 @@ class LCOE_Calculator(object):
         self.__outputsOfWP6["downtimePerDevice [hour]"] = downtime_per_device
         self.__outputsOfWP6["energyPerDevice [Wh]"] = energy_per_device
         self.__outputsOfWP6["LCOEOpex [Euro/kWh]"] = opex_lcoe
-
+        
         return
