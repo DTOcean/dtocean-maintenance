@@ -796,12 +796,7 @@ class LCOE_Calculator(object):
                                                'costOM_Labor [Euro]',
                                                'costOM_Spare [Euro]',
                                                'nameOfvessel [-]']
-
-
-        self.__UnCoMa_outputEventsTable = pd.DataFrame(
-                                index=[0],
-                                columns=self.__UnCoMa_outputEventsTableKeys)
-
+        
         # Keys of eventsTableNoPoisson
         self.__NoPoisson_eventsTableKeys  = ['repairActionEvents',
                                              'failureEvents',
@@ -1006,10 +1001,6 @@ class LCOE_Calculator(object):
                                'Soil type [-]',
                                'Prep_time [h]'
                                ]
-
-        self.__wp6_outputsForLogistic = pd.DataFrame(
-                                                index=[0],
-                                                columns=self.__logisticKeys)
         
         if logistics_manager is None:
             
@@ -1157,12 +1148,7 @@ class LCOE_Calculator(object):
                                           'RA_ID',
                                           'logisticCost',
                                           'omCost']
-
-        # CaBaMa_eventsTableKeys
-        self.__CaBaMa_eventsTable = pd.DataFrame(
-                                        index=[0],
-                                        columns=self.__CaBaMa_eventsTableKeys)
-
+        
         # CaBaMa_eventsTableKeys
         self.__CaBaMa_outputEventsTableKeys = ['repairActionRequestDate [-]',
                                                'repairActionDate [-]',
@@ -1178,11 +1164,7 @@ class LCOE_Calculator(object):
                                                 'costOM_Labor [Euro]',
                                                 'costOM_Spare [Euro]',
                                                 'nameOfvessel [-]']
-
-        self.__CaBaMa_outputEventsTable = pd.DataFrame(
-                                index=[0],
-                                columns=self.__CaBaMa_outputEventsTableKeys)
-
+        
         # Condition based maintenance: Number of parallel actions [-]
         self.__CoBaMa_nrOfMaxActions = 10
 
@@ -1225,11 +1207,7 @@ class LCOE_Calculator(object):
                                                'costOM_Labor [Euro]',
                                                'costOM_Spare [Euro]',
                                                'nameOfvessel [-]']
-
-        self.__CoBaMa_outputEventsTable = pd.DataFrame(
-                                index=[0],
-                                columns=self.__CoBaMa_outputEventsTableKeys)
-
+        
         # actual index of UnCoMa_eventsTable
         self.__actIdxOfUnCoMa = 0
         self.__flagCalcUnCoMa = False
@@ -1540,6 +1518,7 @@ class LCOE_Calculator(object):
 
             loopCalendar  = 0
             loopCondition = 0
+            calendar_records = []
 
             for iCnt in range(0, len(self.__eventsTableNoPoisson)):
 
@@ -1616,9 +1595,8 @@ class LCOE_Calculator(object):
                                       RA_ID,
                                       0,
                                       0]
-    
-                            self.__CaBaMa_eventsTable.loc[loopCalendar] = \
-                                                                        values
+                            
+                            calendar_records.append(values)
                             
                             loopCalendar = loopCalendar + 1
 
@@ -1696,7 +1674,11 @@ class LCOE_Calculator(object):
                                                                         values
 
                             loopCondition = loopCondition + 1
-
+            
+            self.__CaBaMa_eventsTable = pd.DataFrame.from_records(
+                                        calendar_records,
+                                        columns=self.__CaBaMa_eventsTableKeys)
+            
             # sort of calendar_based_maintenance
             if (self.__Farm_OM['calendar_based_maintenance'] == True and
                 loopCalendar != 0):
@@ -2151,10 +2133,11 @@ class LCOE_Calculator(object):
                       Soil_type,
                       self.__PrepTimeCalcUnCoMa
                       ]
-
-            #self.__om_logistic_outputs = pd.DataFrame(index=[0],columns=keys)
-            self.__wp6_outputsForLogistic.iloc[0] = values
-
+            
+            self.__wp6_outputsForLogistic = pd.DataFrame.from_records(
+                                                [values],
+                                                columns=self.__logisticKeys)
+            
             # apply dafety factors in vessels parameters
             (ports,
              vessels,
@@ -2344,16 +2327,18 @@ class LCOE_Calculator(object):
 
         '''
 
-        # set the index of the tables to zero
+        # set the index of the tables to -1
         self.__actIdxOfUnCoMa = 0
         self.__actIdxOfCaBaMa = 0
         self.__actIdxOfCoBaMa = 0
 
         # set the local loops to zero
         loop = 0
-        loopValuesForOutput_CoBaMa = 0
-        loopValuesForOutput_CaBaMa = 0
-        loopValuesForOutput_UnCoMa = 0
+        
+        # Store records used for building output pandas tables
+        CoBaMa_output_records = []
+        CaBaMa_output_records = []
+        UnCoMa_output_records = []
 
         # total action delay
         self.__totalActionDelayHour = 0
@@ -2392,10 +2377,10 @@ class LCOE_Calculator(object):
                     continue
 
                 (loop,
-                 loopValuesForOutput_CoBaMa,
+                 CoBaMa_output_records,
                  flagCalcCoBaMa) = self.__get_lcoe_condition(
                                                    loop,
-                                                   loopValuesForOutput_CoBaMa,
+                                                   CoBaMa_output_records,
                                                    flagCalcCoBaMa)
 
             # calandar based maintenance
@@ -2405,12 +2390,12 @@ class LCOE_Calculator(object):
                 flagCalcCaBaMa == True):
 
                 (loop,
-                 loopValuesForOutput_CaBaMa,
+                 CaBaMa_output_records,
                  flagCalcCoBaMa,
                  flagCalcCaBaMa,
                  flagCalcUnCoMa) = self.__get_lcoe_calendar(
                                                    loop,
-                                                   loopValuesForOutput_CaBaMa,
+                                                   CaBaMa_output_records,
                                                    flagCalcCoBaMa,
                                                    flagCalcCaBaMa,
                                                    flagCalcUnCoMa)
@@ -2434,11 +2419,11 @@ class LCOE_Calculator(object):
                 flagCalcUnCoMa == True):
 
                 (loop,
-                 loopValuesForOutput_UnCoMa,
+                 UnCoMa_output_records,
                  flagCalcCoBaMa,
                  flagCalcUnCoMa) = self.__get_lcoe_unplanned(
                                                  loop,
-                                                 loopValuesForOutput_UnCoMa,
+                                                 UnCoMa_output_records,
                                                  flagCalcCoBaMa,
                                                  flagCalcUnCoMa)
 
@@ -2449,11 +2434,23 @@ class LCOE_Calculator(object):
 
                     if self.__Farm_OM['condition_based_maintenance'] == True:
                         flagCalcCoBaMa = True
-
+        
+        self.__CoBaMa_outputEventsTable = pd.DataFrame.from_records(
+                                CoBaMa_output_records,
+                                columns=self.__CoBaMa_outputEventsTableKeys)
+        
+        self.__CaBaMa_outputEventsTable = pd.DataFrame.from_records(
+                                CaBaMa_output_records,
+                                columns=self.__CaBaMa_outputEventsTableKeys)
+        
+        self.__UnCoMa_outputEventsTable = pd.DataFrame.from_records(
+                                UnCoMa_output_records,
+                                columns=self.__UnCoMa_outputEventsTableKeys)
+        
         return
 
     def __get_lcoe_condition(self, loop,
-                                   loopValuesForOutput_CoBaMa,
+                                   CoBaMa_output_records,
                                    flagCalcCoBaMa):
 
         start_time_CoBaMa = timeit.default_timer()
@@ -2492,7 +2489,7 @@ class LCOE_Calculator(object):
                 
         if self.__endOperationDate <= currentAlarmDate:
             flagCalcCoBaMa = False
-            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+            return loop, CoBaMa_output_records, flagCalcCoBaMa
 
         # simulate or not
         simulateFlag = True
@@ -2523,7 +2520,7 @@ class LCOE_Calculator(object):
                 flagCalcCoBaMa = False
                 loop = 0
 
-            return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+            return loop, CoBaMa_output_records, flagCalcCoBaMa
 
         if self.__dtocean_maintenance_PRINT_FLAG == True:
 
@@ -2658,9 +2655,11 @@ class LCOE_Calculator(object):
                   Bathymetry,
                   Soil_type,
                   self.__PrepTimeCalcCoBaMa]
-
-        self.__wp6_outputsForLogistic.iloc[0] = values
-
+        
+        self.__wp6_outputsForLogistic = pd.DataFrame.from_records(
+                                                [values],
+                                                columns=self.__logisticKeys)
+        
         # Calc logistic functions
         start_time_logistic = timeit.default_timer()
         self.__calcLogistic()
@@ -3032,7 +3031,7 @@ class LCOE_Calculator(object):
                                alarmstr,
                                str(self.__departOpDate.replace(second=0)),
                                int(totalDownTimeHours),
-                               '',
+                               downtimeDeviceList,
                                ComponentType,
                                ComponentSubType,
                                ComponentID,
@@ -3043,15 +3042,8 @@ class LCOE_Calculator(object):
                                int(omCostValue-omCostValueSpare),
                                int(omCostValueSpare),
                                vessel_name]
-
-            self.__CoBaMa_outputEventsTable.loc[
-                                loopValuesForOutput_CoBaMa] = valuesForOutput
-            self.__CoBaMa_outputEventsTable.loc[
-                                loopValuesForOutput_CoBaMa,
-                                'downtimeDeviceList [-]'] = downtimeDeviceList
-
-            # loopValuesForOutput
-            loopValuesForOutput_CoBaMa = loopValuesForOutput_CoBaMa + 1
+            
+            CoBaMa_output_records.append(valuesForOutput)
 
             # for environmental team
             self.__env_assess(loop,
@@ -3124,7 +3116,7 @@ class LCOE_Calculator(object):
         if self.__dtocean_maintenance_PRINT_FLAG == True:
             print 'calcCoBaMa: Simulation Duration [s]: ' + str(duration)
 
-        return loop, loopValuesForOutput_CoBaMa, flagCalcCoBaMa
+        return loop, CoBaMa_output_records, flagCalcCoBaMa
 
     def __switch_to_calendar(self, CaBaMaSolution,
                                    dummyCaBaMaTable,
@@ -3206,11 +3198,11 @@ class LCOE_Calculator(object):
         return CaBaMaSolution, dummyCaBaMaEndDate
 
     def __get_lcoe_calendar(self, loop,
-                                  loopValuesForOutput_CaBaMa,
+                                  CaBaMa_output_records,
                                   flagCalcCoBaMa,
                                   flagCalcCaBaMa,
                                   flagCalcUnCoMa):
-
+        
         start_time_CaBaMa = timeit.default_timer()
 
         idx = self.__actIdxOfCaBaMa
@@ -3263,7 +3255,7 @@ class LCOE_Calculator(object):
             flagCalcCaBaMa = False
             
             return (loop,
-                    loopValuesForOutput_CaBaMa,
+                    CaBaMa_output_records,
                     flagCalcCoBaMa,
                     flagCalcCaBaMa,
                     flagCalcUnCoMa)
@@ -3323,7 +3315,8 @@ class LCOE_Calculator(object):
             ComponentTypeList = []
             ComponentSubTypeList = []
             ComponentIDList = []
-
+            logistics_records = []
+            
             # loop over blockNumber
             for iCnt1 in range(0, blockNumber):
 
@@ -3494,12 +3487,16 @@ class LCOE_Calculator(object):
                           Soil_type,
                           self.__PrepTimeCalcCaBaMa
                           ]
-
-                self.__wp6_outputsForLogistic.loc[iCnt1] = values
-
+                
+                logistics_records.append(values)
+                
                 # end of calandar based maintenance
                 self.__actIdxOfCaBaMa = self.__actIdxOfCaBaMa + 1
-
+            
+            self.__wp6_outputsForLogistic = pd.DataFrame.from_records(
+                                                logistics_records,
+                                                columns=self.__logisticKeys)
+            
             # Calc logistic functions
             start_time_logistic = timeit.default_timer()
             self.__calcLogistic()
@@ -3602,27 +3599,52 @@ class LCOE_Calculator(object):
             tidx = self.__actIdxOfCaBaMa - blockNumber
             self.__CaBaMa_eventsTable.loc[tidx, 'currentStartActionDate'] = \
                                                         operation_action_date
+            
+            tidxs = []
+            shift_tidxs = []
+            
+            currentEndActionDate_vals = []
+            currentStartActionDate_vals = []
+            logisticCost_vals = []
+            omCost_vals = []
 
             for iCnt1 in range(0, blockNumber):
 
                 tidx = self.__actIdxOfCaBaMa - blockNumber + iCnt1
-
+                tidxs.append(tidx)
+                
                 operation_hours = (iCnt1 + 1) * operation_time
                 shiftDate = operation_action_date + \
                                             timedelta(hours=operation_hours)
                 
-                self.__CaBaMa_eventsTable.loc[tidx, 'currentEndActionDate'] = \
-                                                                    shiftDate
+                currentEndActionDate_vals.append(shiftDate)
 
                 if iCnt1 < blockNumber - 1:
+                    shift_tidxs.append(tidx + 1)
                     currentStartActionDateList.append(shiftDate)
-                    self.__CaBaMa_eventsTable.loc[tidx + 1,
-                                                  'currentStartActionDate'] = \
-                                                                    shiftDate
-
-                self.__CaBaMa_eventsTable.loc[tidx,
-                                              'logisticCost'] = logisticcost
-                self.__CaBaMa_eventsTable.loc[tidx, 'omCost'] = omcost
+                    currentStartActionDate_vals.append(shiftDate)
+                    
+                logisticCost_vals.append(logisticcost)
+                omCost_vals.append(omcost)
+            
+            if tidxs:
+            
+                self.__CaBaMa_eventsTable.loc[tidxs,
+                                              'currentEndActionDate'] = \
+                                                      currentEndActionDate_vals
+                
+                self.__CaBaMa_eventsTable.loc[tidxs,
+                                              'logisticCost'] = \
+                                                      logisticCost_vals
+                
+                self.__CaBaMa_eventsTable.loc[tidxs,
+                                              'omCost'] = omCost_vals
+            
+            if shift_tidxs:
+                
+                self.__CaBaMa_eventsTable.loc[shift_tidxs,
+                                              'currentStartActionDate'] = \
+                                                  currentStartActionDate_vals
             
             # Save the cost of operation
             if belongsTo == 'Array':
@@ -3733,7 +3755,7 @@ class LCOE_Calculator(object):
                 valuesForOutput = [str(currentStartActionDate),
                                    str(currentStartActionDateList[iCnt1]),
                                    totalDownTimeHours,
-                                   '',
+                                   downtimeDeviceList[iCnt1],
                                    str(ComponentTypeList[iCnt1]),
                                    str(ComponentSubTypeList[iCnt1]),
                                    str(ComponentIDList[iCnt1]),
@@ -3744,16 +3766,9 @@ class LCOE_Calculator(object):
                                    labourcost,
                                    round(omCostValueSpare, 2),
                                    vessel_name]
-
-                self.__CaBaMa_outputEventsTable.loc[
-                        loopValuesForOutput_CaBaMa] = valuesForOutput
-                self.__CaBaMa_outputEventsTable.loc[
-                                        loopValuesForOutput_CaBaMa,
-                                        'downtimeDeviceList [-]'] = \
-                                                downtimeDeviceList[iCnt1]
-
-                loopValuesForOutput_CaBaMa = loopValuesForOutput_CaBaMa + 1
-
+                
+                CaBaMa_output_records.append(valuesForOutput)
+            
             # for environmental team
             self.__env_assess(loop,
                               currentStartActionDate,
@@ -3765,13 +3780,13 @@ class LCOE_Calculator(object):
             loop = loop + 1
 
         return (loop,
-                loopValuesForOutput_CaBaMa,
+                CaBaMa_output_records,
                 flagCalcCoBaMa,
                 flagCalcCaBaMa,
                 flagCalcUnCoMa)
 
     def __get_lcoe_unplanned(self, loop,
-                                   loopValuesForOutput_UnCoMa,
+                                   UnCoMa_output_records,
                                    flagCalcCoBaMa,
                                    flagCalcUnCoMa):
         
@@ -3779,7 +3794,7 @@ class LCOE_Calculator(object):
         if self.__UnCoMa_eventsTable.empty:
         
             return (loop,
-                    loopValuesForOutput_UnCoMa,
+                    UnCoMa_output_records,
                     flagCalcCoBaMa,
                     flagCalcUnCoMa)
             
@@ -3823,7 +3838,7 @@ class LCOE_Calculator(object):
             self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
 
             return (loop,
-                    loopValuesForOutput_UnCoMa,
+                    UnCoMa_output_records,
                     flagCalcCoBaMa,
                     flagCalcUnCoMa)
             
@@ -3913,12 +3928,12 @@ class LCOE_Calculator(object):
                 self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
     
                 return (loop,
-                        loopValuesForOutput_UnCoMa,
+                        UnCoMa_output_records,
                         flagCalcCoBaMa,
                         flagCalcUnCoMa)
             
         # Should the next operation be shifted? 
-        if (loopValuesForOutput_UnCoMa > 0 and
+        if (len(UnCoMa_output_records) > 0 and
             self.__actIdxOfUnCoMa < len(self.__UnCoMa_eventsTable) - 1):
 
             next_rep = self.__UnCoMa_eventsTable.repairActionEvents[idx] + \
@@ -3969,7 +3984,7 @@ class LCOE_Calculator(object):
                 flagCalcCoBaMa = True
 
             return (loop,
-                    loopValuesForOutput_UnCoMa,
+                    UnCoMa_output_records,
                     flagCalcCoBaMa,
                     flagCalcUnCoMa)
 
@@ -4121,9 +4136,11 @@ class LCOE_Calculator(object):
                   Soil_type,
                   self.__PrepTimeCalcUnCoMa
                   ]
-
-        self.__wp6_outputsForLogistic.iloc[0] = values
-
+        
+        self.__wp6_outputsForLogistic = pd.DataFrame.from_records(
+                                                [values],
+                                                columns=self.__logisticKeys)
+        
         # Calc logistic functions
         start_time_logistic = timeit.default_timer()
         self.__calcLogistic(optimise_delay=True)
@@ -4268,7 +4285,7 @@ class LCOE_Calculator(object):
                            int(totalDownTimeHours),
                            self.__totalSeaTimeHour,
                            totalWaitingTimeHours,
-                           '',
+                           downtimeDeviceList,
                            ComponentType,
                            ComponentSubType,
                            ComponentID,
@@ -4279,16 +4296,8 @@ class LCOE_Calculator(object):
                            int(omCostValue-omCostValueSpare),
                            int(omCostValueSpare),
                            vessel_name]
-
-        self.__UnCoMa_outputEventsTable.loc[loopValuesForOutput_UnCoMa] = \
-                                                            valuesForOutput
         
-        self.__UnCoMa_outputEventsTable.set_value(loopValuesForOutput_UnCoMa,
-                                                  'downtimeDeviceList [-]',
-                                                  downtimeDeviceList)
-        
-        # loopValuesForOutput
-        loopValuesForOutput_UnCoMa = loopValuesForOutput_UnCoMa + 1
+        UnCoMa_output_records.append(valuesForOutput)
         
         # loop __actIdxOfUnCoMa
         self.__actIdxOfUnCoMa = self.__actIdxOfUnCoMa + 1
@@ -4306,7 +4315,7 @@ class LCOE_Calculator(object):
             print 'calcUnCoMa: Simulation Duration [s]: ' + str(time)
 
         return (loop,
-                loopValuesForOutput_UnCoMa,
+                UnCoMa_output_records,
                 flagCalcCoBaMa,
                 flagCalcUnCoMa)
 
