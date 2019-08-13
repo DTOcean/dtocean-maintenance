@@ -52,7 +52,7 @@ from dtocean_reliability.main import Variables, Main
 
 # Internal modules
 from .array import Array
-from .logistics import om_logistics_main
+from .logistics import Logistics
 from .static import (Availability,
                      Energy,
                      get_uptime_df,
@@ -136,7 +136,16 @@ class LCOE_Statistics(object):
         metocean = logistic_param['metocean']
         
         custom_waiting = WaitingTime(metocean)
-                
+        
+        logistics_manager = Logistics(
+                                copy.deepcopy(logistic_param['vessels']),
+                                copy.deepcopy(logistic_param['equipments']),
+                                copy.deepcopy(logistic_param['ports']),
+                                copy.deepcopy(logistic_param['port_sf']),
+                                copy.deepcopy(logistic_param['vessel_sf']),
+                                copy.deepcopy(logistic_param['eq_sf']),
+                                copy.deepcopy(logistic_param['schedule_OLC']))
+        
         # Run simulations and collect results
         for sim_number in xrange(n_sims):
             
@@ -144,7 +153,8 @@ class LCOE_Statistics(object):
             module_logger.info(msg)
                         
             calculator = LCOE_Calculator(self.__inputOMPtr,
-                                         custom_waiting=custom_waiting)
+                                         custom_waiting=custom_waiting,
+                                         logistics_manager=logistics_manager)
             data_point = calculator.executeCalc()
                                     
             for key in metrics_dict.keys():
@@ -663,7 +673,8 @@ class LCOE_Calculator(object):
     '''
 
     def __init__(self, inputOMPTR,
-                       custom_waiting=None):
+                       custom_waiting=None,
+                       logistics_manager=None):
 
         '''__init__ function: Saves the arguments in internal variabels.
 
@@ -999,6 +1010,21 @@ class LCOE_Calculator(object):
         self.__wp6_outputsForLogistic = pd.DataFrame(
                                                 index=[0],
                                                 columns=self.__logisticKeys)
+        
+        if logistics_manager is None:
+            
+            self.__logistics_manager = Logistics(
+                                         copy.deepcopy(self.__vessels),
+                                         copy.deepcopy(self.__equipments),
+                                         copy.deepcopy(self.__ports),
+                                         copy.deepcopy(self.__port_sf),
+                                         copy.deepcopy(self.__vessel_sf),
+                                         copy.deepcopy(self.__eq_sf),
+                                         copy.deepcopy(self.__schedule_OLC))
+        
+        else:
+            
+            self.__logistics_manager = logistics_manager
 
         # end: Declaration of variables for logistic
         #######################################################################
@@ -2153,24 +2179,19 @@ class LCOE_Calculator(object):
                 self.__wp6_outputsForLogistic.apply(pd.to_numeric,
                                                     errors='ignore')
 
-#                """
-#                 Initialising logistic operations and logistic phase
-#                """
+            # Initialising logistic operations and logistic phase
             logOp = logOp_init(self.__schedule_OLC)
-
-            logPhase_om = logPhase_om_init(logOp,
-                                           vessels,
-                                           equipments,
-                                           self.__wp6_outputsForLogistic)
 
             # Select the suitable Log phase id
             log_phase_id = logPhase_select(self.__wp6_outputsForLogistic)
-            log_phase = logPhase_om[log_phase_id]
+            log_phase = logPhase_om_init(log_phase_id,
+                                         logOp,
+                                         vessels,
+                                         equipments,
+                                         self.__wp6_outputsForLogistic)
             log_phase.op_ve_init = log_phase.op_ve
 
-#                """
-#                 Assessing the O&M logistic phase requested
-#                """
+            # Assessing the O&M logistic phase requested
 
             # Initialising the output dictionary to be passed to the O&M
             # module
