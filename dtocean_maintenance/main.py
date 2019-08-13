@@ -4326,15 +4326,8 @@ class LCOE_Calculator(object):
 
         '''
 
-        self.__om_logistic = om_logistics_main(
-                                           copy.deepcopy(self.__vessels),
-                                           copy.deepcopy(self.__equipments),
-                                           copy.deepcopy(self.__ports),
-                                           self.__schedule_OLC,
+        self.__om_logistic = self.__logistics_manager(
                                            self.__other_rates,
-                                           copy.deepcopy(self.__port_sf),
-                                           copy.deepcopy(self.__vessel_sf),
-                                           copy.deepcopy(self.__eq_sf),
                                            self.__site,
                                            self.__metocean,
                                            self.__device,
