@@ -3402,76 +3402,51 @@ class LCOE_Calculator(object):
 
                         Dist_port = self.__portDistIndex['repair'][0]
                         Port_Index = self.__portDistIndex['repair'][1]
-
-
+                    
+                    # Adjustment of the names for logistic module
                     if belongsTo == 'Array':
-
+                        
                         if 'Substation' in ComponentType:
-
                             ComponentTypeLogistic = 'collection point'
-                            ComponentIDLogistic = ComponentID
-
                         elif 'subhub' in ComponentType:
-
                             ComponentTypeLogistic = 'collection point'
-                            ComponentIDLogistic = ComponentID
-
                         elif 'Export Cable' in ComponentType:
-
                             ComponentTypeLogistic = 'static cable'
-                            ComponentIDLogistic = ComponentID
-
                         else:
-
                             ComponentTypeLogistic = ComponentType
-                            ComponentIDLogistic = ComponentID
-
+                    
                     else:
-
-                        # Adjustmet of the names to logistic
-                        # The name of subsystems in logistic and RAM are
-                        # differnt
+                        
                         if 'Dynamic cable' in ComponentSubType:
                             ComponentTypeLogistic = 'dynamic cable'
-                            ComponentIDLogistic = ComponentID
-
                         elif 'Mooring line' in ComponentSubType:
                             ComponentTypeLogistic = 'mooring line'
-                            ComponentIDLogistic = ComponentID
-
                         elif 'Foundation' in ComponentSubType:
                             ComponentTypeLogistic = 'foundation'
-                            ComponentIDLogistic = ComponentID
-
                         else:
                             ComponentTypeLogistic = ComponentType
-                            ComponentIDLogistic = ComponentID
-
+                        
                         if 'device' in ComponentTypeLogistic:
                             ComponentTypeLogistic = 'device'
-
-
+                
                 if belongsTo == 'Array':
-
                     series = self.__Simu_Param['arrayInfoLogistic'][
                                                                 ComponentID]
-
                 else:
-
                     series = self.__Simu_Param['arrayInfoLogistic'][belongsTo]
-
+                
                 depth = series['depth']
                 x_coord = series['x coord']
                 y_coord = series['y coord']
                 zone = series['zone']
                 Bathymetry = series['Bathymetry']
                 Soil_type = series['Soil type']
-
+                
                 # Values for logistic
                 values = [FM_ID,
                           ComponentTypeLogistic,
                           ComponentSubType,
-                          ComponentIDLogistic,
+                          ComponentID,
                           depth,
                           x_coord,
                           y_coord,
