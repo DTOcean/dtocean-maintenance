@@ -55,6 +55,7 @@ from .array import Array
 from .logistics import Logistics
 from .static import (Availability,
                      Energy,
+                     df_fast_sort,
                      get_uptime_df,
                      get_device_energy_df,
                      get_opex_per_year,
@@ -3902,11 +3903,11 @@ class LCOE_Calculator(object):
                             (self.__CaBaMa_eventsTable['FM_ID'] == FM_ID) & \
                             (self.__CaBaMa_eventsTable['indexFM'] == indexFM)]
                     
-                if len(dummyCaBaMaTable) > 1:                
-                
+                if len(dummyCaBaMaTable) > 1:
+                    
                     # sort of eventsTable
-                    dummyCaBaMaTable.sort_values(by='currentEndActionDate',
-                                                 inplace=True)
+                    dummyCaBaMaTable = df_fast_sort(dummyCaBaMaTable,
+                                                    'currentEndActionDate')
                     
                     # start index with 0
                     dummyCaBaMaTable.reset_index(drop=True, inplace=True)

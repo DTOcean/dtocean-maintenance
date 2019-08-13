@@ -489,3 +489,11 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
             break
 
     return randomList
+
+
+def df_fast_sort(df, col_to_sort):
+    
+    sort = np.argsort(df[col_to_sort].values)
+    df = df.reindex(df.index[sort])
+        
+    return df
