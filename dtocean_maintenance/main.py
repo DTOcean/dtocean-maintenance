@@ -3205,9 +3205,20 @@ class LCOE_Calculator(object):
                                   flagCalcUnCoMa):
         
         start_time_CaBaMa = timeit.default_timer()
-
+        
+        # Exit if no actions are required.
+        if self.__CaBaMa_eventsTable.empty:
+            
+            flagCalcCaBaMa = False
+            
+            return (loop,
+                    CaBaMa_output_records,
+                    flagCalcCoBaMa,
+                    flagCalcCaBaMa,
+                    flagCalcUnCoMa)
+        
         idx = self.__actIdxOfCaBaMa
-
+        
         startActionDate  = self.__CaBaMa_eventsTable.startActionDate[idx]
         belongsTo        = str(self.__CaBaMa_eventsTable.belongsTo[idx])
         ComponentType    = str(self.__CaBaMa_eventsTable.ComponentType[idx])
