@@ -1904,6 +1904,11 @@ class LCOE_Calculator(object):
         om_port = select_port_OM.OM_port(outputsForPortSelection,
                                          self.__ports)
 
+        port_name = om_port['Selected base port for installation']['Name [-]']
+        msg_str = ("Port '{}' selected for inspection "
+                   "operations").format(port_name)
+        module_logger.info(msg_str)
+        
         self.__portDistIndex['inspection'].append(
                 om_port['Distance port-site [km]'])
         self.__portDistIndex['inspection'].append(
@@ -1950,6 +1955,11 @@ class LCOE_Calculator(object):
         om_port = select_port_OM.OM_port(outputsForPortSelection,
                                          self.__ports)
 
+        port_name = om_port['Selected base port for installation']['Name [-]']
+        msg_str = ("Port '{}' selected for maintenance and repair "
+                   "operations").format(port_name)
+        module_logger.info(msg_str)
+        
         self.__portDistIndex['repair'].append(
                 om_port['Distance port-site [km]'])
         self.__portDistIndex['repair'].append(
