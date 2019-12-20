@@ -1823,47 +1823,47 @@ class LCOE_Calculator(object):
         
         outputsForPortSelection = pd.DataFrame(index=[0],
                                                columns=self.__logisticKeys)
-
+        
         sp_dry_mass_dummy       = 0.01
         sp_length_dummy         = 0.01
         sp_width_dummy          = 0.01
         sp_height_dummy         = 0.01
-
+        
         self.__portDistIndex['inspection'] = []
         self.__portDistIndex['repair']     = []
-
+        
         for iCnt in range(0,len(self.__eventsTableNoPoisson)):
-
+            
             ComponentID = self.__eventsTableNoPoisson.ComponentID[iCnt]
-
+            
             indexFM = self.__eventsTableNoPoisson.indexFM[iCnt]
             CompIDWithIndex = ComponentID + '_' + str(indexFM)
             
             failure_mode = self.__Failure_Mode[CompIDWithIndex]
             failure_mode = failure_mode.apply(pd.to_numeric,
                                               errors="ignore")
-
+            
             # max of values
             sp_dry_mass = failure_mode['spare_mass']
-
+            
             if sp_dry_mass_dummy < sp_dry_mass:
                 sp_dry_mass_dummy = sp_dry_mass
-
+            
             sp_length = failure_mode['spare_length']
-
+            
             if sp_length_dummy < sp_length:
                 sp_length_dummy = sp_length
-
+            
             sp_width = failure_mode['spare_width']
-
+            
             if sp_width_dummy < sp_width:
                 sp_width_dummy = sp_width
-
+            
             sp_height = failure_mode['spare_height']
-
+            
             if sp_height_dummy < sp_height:
                 sp_height_dummy = sp_height
-
+        
         # Inspection case
         # *****************************************************************
         # *****************************************************************
@@ -1898,12 +1898,12 @@ class LCOE_Calculator(object):
                   '',
                   '',
                   0]
-
+        
         outputsForPortSelection.iloc[0] = values
-
+        
         om_port = select_port_OM.OM_port(outputsForPortSelection,
                                          self.__ports)
-
+        
         port_name = om_port['Selected base port for installation']['Name [-]']
         msg_str = ("Port '{}' selected for inspection "
                    "operations").format(port_name)
@@ -1913,7 +1913,7 @@ class LCOE_Calculator(object):
                 om_port['Distance port-site [km]'])
         self.__portDistIndex['inspection'].append(
                 om_port['Port database index [-]'])
-
+        
         # Repair case
         # *****************************************************************
         # *****************************************************************
@@ -1948,13 +1948,13 @@ class LCOE_Calculator(object):
                   '',
                   '',
                   0]
-
+        
         outputsForPortSelection.iloc[0] = values
-
+        
         # Port Selection based on input
         om_port = select_port_OM.OM_port(outputsForPortSelection,
                                          self.__ports)
-
+        
         port_name = om_port['Selected base port for installation']['Name [-]']
         msg_str = ("Port '{}' selected for maintenance and repair "
                    "operations").format(port_name)
@@ -1966,7 +1966,7 @@ class LCOE_Calculator(object):
                 om_port['Port database index [-]'])
         
         return
-
+    
     def __initCheck(self):
 
         '''__initCheck function: Check for "NoSolutionsFound" incompatibility
