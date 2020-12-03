@@ -1907,7 +1907,7 @@ class LCOE_Calculator(object):
         port_name = om_port['Selected base port for installation']['Name [-]']
         msg_str = ("Port '{}' selected for inspection "
                    "operations").format(port_name)
-        module_logger.info(msg_str)
+        module_logger.debug(msg_str)
         
         self.__portDistIndex['inspection'].append(
                 om_port['Distance port-site [km]'])
@@ -1958,7 +1958,7 @@ class LCOE_Calculator(object):
         port_name = om_port['Selected base port for installation']['Name [-]']
         msg_str = ("Port '{}' selected for maintenance and repair "
                    "operations").format(port_name)
-        module_logger.info(msg_str)
+        module_logger.debug(msg_str)
         
         self.__portDistIndex['repair'].append(
                 om_port['Distance port-site [km]'])
@@ -3535,7 +3535,7 @@ class LCOE_Calculator(object):
             
                 logMsg = "Chosen vessel for journey {} is {}".format(i,
                                                                      vessel_id)
-                module_logger.info(logMsg)
+                module_logger.debug(logMsg)
 
             self.__endOpDate = datetime.datetime(optimal['end_dt'].year,
                                                  optimal['end_dt'].month,
