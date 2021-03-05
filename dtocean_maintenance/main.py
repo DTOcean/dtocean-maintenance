@@ -1813,7 +1813,9 @@ class LCOE_Calculator(object):
             
             sp_height = failure_mode['spare_height']
             
-            if sp_height_dummy < sp_height:
+            if (not np.isnan(sp_height) and
+                sp_height_dummy < sp_height):
+                
                 sp_height_dummy = sp_height
         
         # Inspection case
