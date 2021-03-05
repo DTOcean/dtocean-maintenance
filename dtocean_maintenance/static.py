@@ -413,12 +413,8 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
 
     # poison parameter
     loopNumber       = 2000
-    lowerPercentile  = 40
-    upperPercentile  = 70
     timeStepLoop     = []
     numberLoop       = []
-    numberLoopFilt   = []
-    timeStepLoopFilt = []
 
     dummyStartOperationDate = datetime.datetime(startOperationDate.year,
                                                 startOperationDate.month,
@@ -434,15 +430,16 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
         timeStepAll = 0
         timeStep = []
         number = 0
+        
         # calculation loop
         while timeStepAll < simulationTime:
 
             # time dt
-            dt = -math.log(1.0 - random.random()) / failureRate
+            dt = -1 * math.log(random.random()) / failureRate
             timeStepAll = timeStepAll + dt
             number = number + 1
             timeStep.append(dt)
-
+        
         #delete last entries
         number = number - 1
         del timeStep[-1]
@@ -451,27 +448,9 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
         numberLoop.append(number)
         timeStepLoop.append(timeStep)
 
-    upperPercentileValue = np.percentile(numberLoop, upperPercentile)
-    lowerPercentileValue = np.percentile(numberLoop, lowerPercentile)
-
-    for lCnt in range(0, loopNumber):
-
-        if ((numberLoop[lCnt] >= lowerPercentileValue) &
-            (numberLoop[lCnt] <= upperPercentileValue)):
-
-            numberLoopFilt.append(numberLoop[lCnt])
-            timeStepLoopFilt.append(timeStepLoop[lCnt])
-
-    if len(numberLoopFilt) > 0:
-
-        loopIndex = random.randint(0, len(numberLoopFilt) - 1)
-        timeStep = timeStepLoopFilt[loopIndex]
-        number = numberLoopFilt[loopIndex]
-
-    else:
-
-        timeStep = []
-        number = 0
+    loopIndex = random.randint(0, len(numberLoop) - 1)
+    timeStep = timeStepLoop[loopIndex]
+    number = numberLoop[loopIndex]
 
     TimeStamp = dummyStartOperationDate
 

@@ -254,11 +254,15 @@ class inputOM:
         RAM_Param (dict): This parameter records the information for talking to
             RAM module
             keys:
+                db (dict) [-]: Component database
+                elechier (dict) [-]: Electrical layout architecture
+                elecbom (dict) [-]: Electrical BOM
+                moorhier (dict) [-]: Moorings layout architecture
+                moorbom (dict) [-]: Moorings BOM
+                userhier (dict) [-]: User sub-systems architecture
+                userbom (dict) [-]: User sub-systems BOM
                 calcscenario (str) [-]: scenario for the calculation
-                eleclayout (str) [-]: Electrical layout architecture
-                pointer (class) [-]: pointer of dtocean-reliability class
-                severitylevel (str) [-]: Level of severity
-                systype (str) [-]: Type of system
+
 
         Logistic_Param (dict): This parameter records the information for
             talking to logistic module

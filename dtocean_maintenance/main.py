@@ -48,7 +48,7 @@ from dtocean_logistics.phases.om.select_logPhase import logPhase_select
 from dtocean_logistics.phases.operations import logOp_init
 from dtocean_logistics.selection.select_ve import select_e, select_v
 from dtocean_logistics.selection.match import compatibility_ve
-from dtocean_reliability.main import Variables, Main
+from dtocean_reliability import Network, SubNetwork
 
 # Internal modules
 from .array import Array
@@ -147,6 +147,24 @@ class LCOE_Statistics(object):
                                 copy.deepcopy(logistic_param['eq_sf']),
                                 copy.deepcopy(logistic_param['schedule_OLC']))
         
+        # Single RAM network
+        ram_param = self.__inputOMPtr.get_RAM_Param()
+        
+        electrical_network = SubNetwork(ram_param['elechier'],
+                                        ram_param['elecbom'])
+        moorings_network = SubNetwork(ram_param['moorhier'],
+                                      ram_param['moorbom'])
+        user_network = SubNetwork(ram_param['userhier'],
+                                  ram_param['userbom'])
+        
+        network = Network(ram_param['db'],
+                          electrical_network,
+                          moorings_network,
+                          user_network)
+        
+        ram_network = network.set_failure_rates(
+                                    calcscenario=ram_param['calcscenario'])
+        
         # Run simulations and collect results
         for sim_number in xrange(n_sims):
             
@@ -155,7 +173,8 @@ class LCOE_Statistics(object):
                         
             calculator = LCOE_Calculator(self.__inputOMPtr,
                                          custom_waiting=custom_waiting,
-                                         logistics_manager=logistics_manager)
+                                         logistics_manager=logistics_manager,
+                                         ram_network=ram_network)
             data_point = calculator.executeCalc()
                                     
             for key in metrics_dict.keys():
@@ -517,15 +536,13 @@ class LCOE_Calculator(object):
         self.__delayEventsAfterCaBaMaHour (float) [hour]:
             Delay repair action after CaBaMa
         self.__energy_selling_price (float) [Euro/kWh]: Energy selling price
-        arrayDict (dict) [-]:
+        self.__arrayDict (dict) [-]:
             dictionary for the saving of model calculation
-        startOperationDate (datetime) [-]: date of simulation start
+        self.__startOperationDate (datetime) [-]: date of simulation start
         self.__annual_Energy_Production_perD (list of float) [Wh]:
             Annual energy production per device
         self.__NrOfDevices (int) [-]: Number of devices
         self.__NrOfTurnOffDevices (int) [-]: Number of devices turned off
-        self.__operationTimeYear (float) [year]:
-            Operation time in years (mission time)
         self.__operationTimeDay (float) [day]: Operation time in days
         self.__endOperationDate (datetime) [day]: end date of array operation
         self.__UnCoMa_eventsTableKeys (list of str) [-]:
@@ -578,9 +595,7 @@ class LCOE_Calculator(object):
             keys of dataframe for logistic functions
         self.__wp6_outputsForLogistic (DataFrame) [-]:
             input for logistic module
-        self.__ramPTR (class) [-]: pointer of RAM
-        self.__eleclayout (str) [-]: Electrical layout architecture
-        self.__systype (str) [-]: Type of system
+        self.__ram_network (class) [-]: RAM Network object
         self.__elechierdict (str) [-]: RAM parameter
         self.__elecbomeg (str) [-]: RAM parameter
         self.__moorhiereg (str) [-]: RAM parameter
@@ -675,7 +690,8 @@ class LCOE_Calculator(object):
 
     def __init__(self, inputOMPTR,
                        custom_waiting=None,
-                       logistics_manager=None):
+                       logistics_manager=None,
+                       ram_network=None):
 
         '''__init__ function: Saves the arguments in internal variabels.
 
@@ -751,9 +767,6 @@ class LCOE_Calculator(object):
 
         # Nr of turn out devices []
         self.__NrOfTurnOffDevices = 0
-
-        # Operation time in years (mission time)
-        self.__operationTimeYear = float(self.__Simu_Param['missionTime'])
 
         # Operation time in days
         self.__operationTimeDay = self.__Simu_Param['missionTime'] * \
@@ -1025,46 +1038,28 @@ class LCOE_Calculator(object):
         # start: Declaration of variables for RAM
 
         # This variable will be used for saving of RAM instance.
-        self.__ramPTR = None
-
-        # Eleclayout -> radial, singlesidedstring, doublesidedstring,
-        # multiplehubs
-        self.__eleclayout = self.__RAM_Param['eleclayout']
-
-        # systype -> 'tidefloat', 'tidefixed', 'wavefloat', 'wavefixed'
-        self.__systype = self.__RAM_Param['systype']
-
-        # elechierdict
-        self.__elechierdict = self.__RAM_Param['elechierdict']
-
-        # elecbomeg
-        self.__elecbomeg = self.__RAM_Param['elecbomeg']
-
-        # moorhiereg
-        self.__moorhiereg = self.__RAM_Param['moorhiereg']
-
-        # moorbomeg
-        self.__moorbomeg = self.__RAM_Param['moorbomeg']
-
-        # userhiereg
-        self.__userhiereg = self.__RAM_Param['userhiereg']
-
-        # userbomeg
-        self.__userbomeg = self.__RAM_Param['userbomeg']
-
-        # db
-        self.__db = self.__RAM_Param['db']
-
-
-        # Declaration of output of RAM
-        #self.__ram = {}
-
-        # list rsubsysvalues from RAM
-        self.__rsubsysvalues = []
-
-        # list rcompvalues from RAM
-        self.__rcompvalues = []
-
+        
+        if ram_network is None:
+            
+            electrical_network = SubNetwork(self.__RAM_Param['elechier'],
+                                            self.__RAM_Param['elecbom'])
+            moorings_network = SubNetwork(self.__RAM_Param['moorhier'],
+                                          self.__RAM_Param['moorbom'])
+            user_network = SubNetwork(self.__RAM_Param['userhier'],
+                                      self.__RAM_Param['userbom'])
+            
+            network = Network(self.__RAM_Param['db'],
+                              electrical_network,
+                              moorings_network,
+                              user_network)
+            
+            self.__ram_network = network.set_failure_rates(
+                            calcscenario=self.__RAM_Param['calcscenario'])
+        
+        else:
+            
+            self.__ram_network = ram_network
+        
 
         # end: Declaration of variables for RAM
         #######################################################################
@@ -1468,35 +1463,10 @@ class LCOE_Calculator(object):
 
         '''
 
-        # mission time in hours
-        mission_time = self.__operationTimeYear * self.__yearDays * \
-                                                            self.__dayHours
-
-        input_variables = Variables(mission_time,
-                                    self.__systype,
-                                    self.__db,
-                                    None,
-                                    self.__eleclayout,
-                                    self.__elechierdict,
-                                    self.__elecbomeg,
-                                    self.__moorhiereg,
-                                    self.__moorbomeg,
-                                    self.__userhiereg,
-                                    self.__userbomeg)
-
-        # Make an instance of RAM
-        self.__ramPTR = Main(input_variables)
-
-        # calculation of RAM
-        self.__ram = self.__calcRAM()
-
         # make instance of arrayClass
-        self.__arrayPTR = Array(self.__startOperationDate,
+        self.__arrayPTR = Array(self.__ram_network,
+                                self.__startOperationDate,
                                 self.__operationTimeDay,
-                                self.__rcompvalues,
-                                self.__rsubsysvalues,
-                                self.__eleclayout,
-                                self.__systype,
                                 self.__UnCoMa_eventsTableKeys,
                                 self.__NoPoisson_eventsTableKeys,
                                 self.__dtocean_maintenance_PRINT_FLAG)
@@ -1800,24 +1770,6 @@ class LCOE_Calculator(object):
             self.__UnCoMa_eventsTable.reset_index(drop=True, inplace=True)
 
         return
-
-    def __calcRAM(self):
-
-        '''__calcRAM function: calls of dtocean-reliability and saves the
-        results
-
-        '''
-
-        # Execute call method of RAM
-        self.__ramPTR()
-
-        # list rsubsysvalues from RAM
-        self.__rsubsysvalues = self.__ramPTR.rsubsysvalues3
-
-        # list rcompvalues from RAM
-        self.__rcompvalues = self.__ramPTR.rcompvalues3
-
-        return
     
     def __initPorts(self):
         
@@ -2089,11 +2041,11 @@ class LCOE_Calculator(object):
             else:
 
                 # Adjustmet of the names to logistic
-                if 'Dynamic cable' in ComponentSubType:
+                if 'Umbilical' in ComponentSubType:
                     ComponentTypeLogistic = 'dynamic cable'
                     ComponentIDLogistic   = ComponentID
                     
-                elif 'Mooring line' in ComponentSubType:
+                elif 'Moorings lines' in ComponentSubType:
                     ComponentTypeLogistic = 'mooring line'
                     ComponentIDLogistic   = ComponentID
 
@@ -2617,11 +2569,11 @@ class LCOE_Calculator(object):
 
             # Adjustmet of the names to logistic
             # The name of subsystems in logistic and RAM are differnt
-            if 'Dynamic cable' in ComponentSubType:
+            if 'Umbilical' in ComponentSubType:
                 ComponentTypeLogistic = 'dynamic cable'
                 ComponentIDLogistic   = ComponentID
 
-            elif 'Mooring line' in ComponentSubType:
+            elif 'Moorings lines' in ComponentSubType:
                 ComponentTypeLogistic = 'mooring line'
                 ComponentIDLogistic   = ComponentID
 
@@ -3428,9 +3380,9 @@ class LCOE_Calculator(object):
                     
                     else:
                         
-                        if 'Dynamic cable' in ComponentSubType:
+                        if 'Umbilical' in ComponentSubType:
                             ComponentTypeLogistic = 'dynamic cable'
-                        elif 'Mooring line' in ComponentSubType:
+                        elif 'Moorings lines' in ComponentSubType:
                             ComponentTypeLogistic = 'mooring line'
                         elif 'Foundation' in ComponentSubType:
                             ComponentTypeLogistic = 'foundation'
@@ -4083,11 +4035,11 @@ class LCOE_Calculator(object):
 
             # Adjustmet of the names to logistic
             # The name of subsystems in logistic and RAM are differnt
-            if 'Dynamic cable' in ComponentSubType:
+            if 'Umbilical' in ComponentSubType:
                 ComponentTypeLogistic = 'dynamic cable'
                 ComponentIDLogistic = ComponentID
 
-            elif 'Mooring line' in ComponentSubType:
+            elif 'Moorings lines' in ComponentSubType:
                 ComponentTypeLogistic = 'mooring line'
                 ComponentIDLogistic = ComponentID
 
