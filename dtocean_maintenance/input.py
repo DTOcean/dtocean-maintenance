@@ -261,7 +261,10 @@ class inputOM:
                 moorbom (dict) [-]: Moorings BOM
                 userhier (dict) [-]: User sub-systems architecture
                 userbom (dict) [-]: User sub-systems BOM
+                elecdata (recarray) [-]: electrical component data
                 calcscenario (str) [-]: scenario for the calculation
+                use_kfactors (bool) [-]:
+                    use kfactors in reliability calculations
 
 
         Logistic_Param (dict): This parameter records the information for
