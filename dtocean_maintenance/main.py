@@ -160,12 +160,11 @@ class LCOE_Statistics(object):
         network = Network(ram_param['db'],
                           electrical_network,
                           moorings_network,
-                          user_network,
-                          ram_param['elecdata'])
+                          user_network)
         
         ram_network = network.set_failure_rates(
                                     calcscenario=ram_param['calcscenario'],
-                                    use_kfactors=ram_param['use_kfactors'])
+                                    k_factors=ram_param['kfactors'])
         
         # Run simulations and collect results
         for sim_number in xrange(n_sims):
@@ -1053,12 +1052,11 @@ class LCOE_Calculator(object):
             network = Network(self.__RAM_Param['db'],
                               electrical_network,
                               moorings_network,
-                              user_network,
-                              self.__RAM_Param['elecdata'])
+                              user_network)
             
             self.__ram_network = network.set_failure_rates(
                             calcscenario=self.__RAM_Param['calcscenario'],
-                            use_kfactors=self.__RAM_Param['use_kfactors'])
+                            k_factors=self.__RAM_Param['kfactors'])
         
         else:
             
