@@ -8,7 +8,7 @@
 #---------------------------------#
 
 # version format
-version: 2.0.0.build{build}
+version: 3.0.dev1.build{build}
 
 environment:
   matrix:
@@ -33,9 +33,9 @@ install:
   - activate _dtocean_oandm
   - copy .condarc %CONDA_PREFIX%
   - ^
-    conda install dtocean-logistics=2.0.0
-                  dtocean-economics=2.0.0
-                  dtocean-reliability=2.0.0
+    conda install "dtocean-economics>=2.0,<3"
+                  "dtocean-logistics>=3.0,<4"
+                  "dtocean-reliability>=3.0,<4"
                   "polite>=0.9,<1"
   - conda install --file requirements-conda-dev.txt
   - pip install -e .
