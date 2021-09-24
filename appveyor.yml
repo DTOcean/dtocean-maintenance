@@ -36,6 +36,7 @@ install:
     conda install dtocean-logistics=2.0.0
                   dtocean-economics=2.0.0
                   dtocean-reliability=2.0.0
+                  "polite>=0.9,<1"
   - conda install --file requirements-conda-dev.txt
   - pip install -e .
   - conda install mock pytest pytest-cov=2.5.1 pytest-mock

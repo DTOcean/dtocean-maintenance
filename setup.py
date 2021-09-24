@@ -86,6 +86,9 @@ setup(name='dtocean-maintenance',
           'dtocean-reliability==2.0.0',
           'numpy',
           'pandas>=0.17'
+          'pandas >=0.17',
+          'polite >=0.9, <1',
+          'setuptools'
       ],
       zip_safe=False, # Important for reading config files
       tests_require=['pytest',
