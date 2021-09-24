@@ -7,13 +7,6 @@
 #      general configuration      #
 #---------------------------------#
 
-# Build only for commits to certain locations
-only_commits:
-  files:
-    - dtocean_maintenance/
-    - tests/
-    - setup.py
-
 # version format
 version: 2.0.0.build{build}
 
@@ -26,7 +19,6 @@ environment:
     - PYTHON_VERSION: 2.7
       MINICONDA: C:\Miniconda-x64
       ARCH: "64"
-
 
 init:
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1')) # RDP
@@ -46,7 +38,7 @@ install:
                   dtocean-reliability=2.0.0
   - conda install --file requirements-conda-dev.txt
   - pip install -e .
-  - conda install pytest pytest-mock pytest-cov
+  - conda install mock pytest pytest-cov=2.5.1 pytest-mock
   
 build: off
   
