@@ -99,6 +99,7 @@ setup(name='dtocean-maintenance',
       maintainer_email='mathew.topper@dataonlygreater.com',
       license="GPLv3",
       packages=find_packages(),
+      setup_requires=['pyyaml'],
       install_requires=[
           'dtocean-economics >= 2.0, <3',
           'dtocean-logistics >= 3.0, <4',

@@ -29,7 +29,7 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update --quiet conda
   - conda info --all
-  - conda create -n _dtocean_oandm python=%PYTHON_VERSION% pip
+  - conda create -n _dtocean_oandm python=%PYTHON_VERSION% pip pyyaml
   - activate _dtocean_oandm
   - copy .condarc %CONDA_PREFIX%
   - ^
