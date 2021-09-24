@@ -10,8 +10,9 @@
 
 import os
 import sys
-
 from distutils.cmd import Command
+
+import yaml
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
