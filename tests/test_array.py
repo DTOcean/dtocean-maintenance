@@ -36,8 +36,8 @@ from dtocean_maintenance.array import Array
 #    test._Array__calcPoissonEvents(failure_rate)
 #    
 #    assert len(test._Array__Poisson) > 0
-#    
-#    
+
+
 #def test_Array___calcPoissonEvents_empty():
 #    
 #    start_date = dt.datetime(2016, 1, 1)
