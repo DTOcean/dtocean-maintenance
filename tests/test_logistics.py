@@ -15,10 +15,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# pylint: disable=redefined-outer-name
+
 import pandas as pd
 import pytest
 
-from dtocean_maintenance.logistics import (EquipmentType,
+from dtocean_maintenance.logistics import (EquipmentType, # pylint: disable=no-name-in-module
                                            VesselType,
                                            _copy_equipment_dict,
                                            _copy_vessel_dict)
