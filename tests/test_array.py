@@ -15,6 +15,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# pylint: disable=redefined-outer-name,protected-access,no-member
+
 import datetime as dt
 from collections import Counter # Required for eval of text files
 
@@ -114,7 +116,7 @@ def test_Array_init(eventsTableKeys,
                   NoPoisson_eventsTableKeys,
                   False)
     
-    test = array._ram_subsystem_metrics['Substation'].loc["array"]
+    test = array._Array__ram_subsystem_metrics['Substation'].loc["array"]
     
     assert np.isclose(test["MTTF"], 1e6 / 5)
     assert test["Curtails"] == ['device001']

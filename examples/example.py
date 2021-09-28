@@ -459,15 +459,14 @@ def test():
                 Component_subtype, failure_rate, number_failure_modes, start_date_calendar_based_maintenance, end_date_calendar_based_maintenance, \
                 interval_calendar_based_maintenance, start_date_condition_based_maintenance, end_date_condition_based_maintenance, \
                 soh_threshold, is_floating]   
-    
         else:
             loop = loop + 1 
-            dummyDict['Component' + str(loop)] = [Component_ID +'{:03d}'.format(1), Component_type +'{:03d}'.format(1), \
+            dummyDict['Component' + str(loop)] = [Component_ID +'{:03d}'.format(1), "array", \
             Component_subtype, failure_rate, number_failure_modes, start_date_calendar_based_maintenance, end_date_calendar_based_maintenance, \
             interval_calendar_based_maintenance, start_date_condition_based_maintenance, end_date_condition_based_maintenance, \
             soh_threshold, is_floating]   
                    
-    Component = pd.DataFrame(dummyDict, index = ComponentKeys) 
+    Component = pd.DataFrame(dummyDict, index = ComponentKeys)
     
     # only for test simplification
     if loop !=0: 
@@ -801,15 +800,16 @@ def test():
             dummyuserbomeg    = database_reliability('dummyuserbomeg4.txt')  
         
     
-    RAM_Param['elechierdict'] = eval(open(dummyelechierdict).read())
-    RAM_Param['elecbomeg']    = eval(open(dummyelecbomeg).read())
-    RAM_Param['moorhiereg']   = eval(open(dummymoorhiereg).read())
-    RAM_Param['moorbomeg']    = eval(open(dummymoorbomeg).read())
-    RAM_Param['userhiereg']   = eval(open(dummyuserhiereg).read()) 
-    RAM_Param['userbomeg']    = eval(open(dummyuserbomeg).read())
-    RAM_Param['db']           = eval(open(dummydb).read())
+    RAM_Param['db']             = eval(open(dummydb).read())
+    RAM_Param['elechier']       = eval(open(dummyelechierdict).read())
+    RAM_Param['elecbom']        = eval(open(dummyelecbomeg).read())
+    RAM_Param['moorhier']       = eval(open(dummymoorhiereg).read())
+    RAM_Param['moorbom']        = eval(open(dummymoorbomeg).read())
+    RAM_Param['userhier']       = eval(open(dummyuserhiereg).read()) 
+    RAM_Param['userbom']        = eval(open(dummyuserbomeg).read())
+    RAM_Param["calcscenario"]   = 'mean'
+    RAM_Param['kfactors']       = {}
     
-                                                                                                       
     #del dummydb, dummymoorhiereg, dummyelechierdict, dummyuserhiereg, dummymoorbomeg, dummyelecbomeg, dummyuserbomeg 
     del dummydb, dummymoorhiereg, dummyelechierdict, dummymoorbomeg, dummyelecbomeg
     del systype, farmFile, eleclayout, systypeFile, eleclayoutFile        

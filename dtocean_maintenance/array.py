@@ -138,7 +138,7 @@ class Array(object):
             df = df.set_index("System")
             return df
         
-        self._ram_subsystem_metrics = {x: get_metrics_df(x)
+        self.__ram_subsystem_metrics = {x: get_metrics_df(x)
                                                 for x in self.__ram_subsystems}
         
         return
@@ -218,9 +218,9 @@ class Array(object):
             
             # Get sub-system metrics (all systems)
             if componentSubType in ['Foundation', 'Moorings lines']:
-                metrics = self._ram_subsystem_metrics['Station keeping']
+                metrics = self.__ram_subsystem_metrics['Station keeping']
             else:
-                metrics = self._ram_subsystem_metrics[componentSubType]
+                metrics = self.__ram_subsystem_metrics[componentSubType]
             
             if metrics is None:
                 
