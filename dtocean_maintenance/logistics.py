@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Boris Teillant, Paulo Chainho, Pedro Vicente
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -257,13 +257,13 @@ class Logistics(object):
                                    om_log['requirement'][5]['deck cargo'],
                        'deck loading [t/m^2]':
                                    om_log['requirement'][5]['deck loading']}
-                
+            
             msg = 'No vessel solutions found. Requirements: {}'.format(ves_req)
             module_logger.warning(msg)
-                
+            
             if PRINT_FLAG:
                 print msg
-                
+            
             om_log['findSolution'] = 'NoSolutionsFound'
             
         else:
@@ -300,16 +300,16 @@ class Logistics(object):
                                                  log_phase,
                                                  log_phase_id,
                                                  other_rates)
-    
+                
                 # Identifying the optimal logistic solution as being the least
                 # costly one
                 om_log['optimal'] = opt_sol(log_phase, log_phase_id)
                 om_log['findSolution'] = 'SolutionFound'
-    
+                
                 if PRINT_FLAG:
                     
                     print 'Final Solution Found!'
-    
+                    
                     print 'Solution Total Cost [EURO]: ' + \
                             str(om_log['optimal']['total cost'])
                     print 'Solution Schedule preparation time [h]:' + \
@@ -322,22 +322,22 @@ class Logistics(object):
                             str(om_log['optimal']['schedule prep time'] +
                                 om_log['optimal']['schedule waiting time'] +
                                 om_log['optimal']['schedule sea time'])
-    
+                    
                     # print 'Solution VE combination:'
                     # print om_log['optimal']['vessel_equipment']
-    
+                    
                     # OUTPUT_dict = out_process(log_phase, om_log)
                     # print OUTPUT_dict
-    
+        
         stop_time = timeit.default_timer()
-    
+        
         if PRINT_FLAG:
             
             print 'Simulation Duration [s]: ' + str(stop_time - start_time)
-    
+            
             print 'om_log[''findSolution'']: ' + om_log['findSolution']
             print 'FINISH!'
-    
+        
         return om_log
 
 
@@ -364,9 +364,9 @@ def _copy_vessel_dict(old):
 def _copy_om_log(old):
     
     def _copy_combi_select(old):
-
+        
         new_list = []
-    
+        
         for c in old:
             out_dict = {}
             for k_out, v_out in c.iteritems():

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Bahram Panahandeh
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ class Array(object):
         '''__init__ function: Saves the arguments in internal variabels.
 
         Args:
-            ram_network (object): RAM Netwok object
+            ram_network (object): RAM Network object
             startOperationDate (datetime): date of simulation start
             simulationTimeDay (float): simulation time in days
             eventsTableKeys (list of str): keys of event table dataframe
@@ -138,7 +138,7 @@ class Array(object):
             df = df.set_index("System")
             return df
         
-        self.__ram_subsystem_metrics = {x: get_metrics_df(x)
+        self._ram_subsystem_metrics = {x: get_metrics_df(x)
                                                 for x in self.__ram_subsystems}
         
         return
@@ -218,9 +218,9 @@ class Array(object):
             
             # Get sub-system metrics (all systems)
             if componentSubType in ['Foundation', 'Moorings lines']:
-                metrics = self.__ram_subsystem_metrics['Station keeping']
+                metrics = self._ram_subsystem_metrics['Station keeping']
             else:
-                metrics = self.__ram_subsystem_metrics[componentSubType]
+                metrics = self._ram_subsystem_metrics[componentSubType]
             
             if metrics is None:
                 
