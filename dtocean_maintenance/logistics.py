@@ -98,8 +98,6 @@ class Logistics(object):
     
     def _get_log_phase(self, device,
                              sub_device,
-                             entry_point,
-                             layout,
                              collection_point,
                              dynamic_cable,
                              static_cable,
@@ -118,7 +116,7 @@ class Logistics(object):
             for (test_elements,
                  om_log,
                  log_phase, 
-                 MATCH_FLAG) in self._prelog[log_phase_id]:
+                 match_flag) in self._prelog[log_phase_id]:
                 
                 if set(element_IDs) == set(test_elements):
                     
@@ -135,7 +133,7 @@ class Logistics(object):
                     
                     return (_copy_om_log(om_log),
                             deepcopy(log_phase),
-                            MATCH_FLAG,
+                            match_flag,
                             log_phase_id)
         
         log_phase = logPhase_om_init(log_phase_id,
@@ -180,12 +178,12 @@ class Logistics(object):
         # port/vessel(s)/equipment leading to feasible logistic solutions
         (om_log['combi_select'],
          log_phase,
-         MATCH_FLAG) = compatibility_ve(om_log, log_phase, om_port)
+         match_flag) = compatibility_ve(om_log, log_phase, om_port)
         
         store_tuple = (element_IDs,
                        _copy_om_log(om_log),
                        deepcopy(log_phase),
-                       MATCH_FLAG)
+                       match_flag)
         
         if log_phase_id in self._prelog:
             self._prelog[log_phase_id].append(store_tuple)
@@ -198,7 +196,7 @@ class Logistics(object):
 #            self._old_element_ids = set(element_IDs)
         
         
-        return om_log, log_phase, MATCH_FLAG, log_phase_id
+        return om_log, log_phase, match_flag, log_phase_id
     
     def __call__(self,
                  other_rates,
@@ -213,18 +211,18 @@ class Logistics(object):
                  static_cable,
                  connectors,
                  om,
-                 PRINT_FLAG,
+                 print_flag,
                  optimise_delay=False,
                  custom_waiting=None):
         
         start_time = timeit.default_timer()
         
-        if PRINT_FLAG:
+        if print_flag:
             print 'START!'
         
         # Collecting relevant port information
         om_port_index = om['Port_Index [-]'].iloc[0]
-        om_port = self._ports.iloc[ om_port_index]
+        om_port = self._ports.iloc[om_port_index]
         
         # Check the presence of the lease area entry point.
         # If this data does not exit use first position of the site data
@@ -237,11 +235,9 @@ class Logistics(object):
         
         (om_log,
          log_phase,
-         MATCH_FLAG,
+         match_flag,
          log_phase_id) = self._get_log_phase(device,
                                             sub_device,
-                                            entry_point,
-                                            layout,
                                             collection_point,
                                             dynamic_cable,
                                             static_cable,
@@ -249,7 +245,7 @@ class Logistics(object):
                                             om,
                                             om_port)
         
-        if MATCH_FLAG == 'NoSolutions':
+        if match_flag == 'NoSolutions':
             
             ves_req = {'deck area [m^2]':
                                     om_log['requirement'][5]['deck area'],
@@ -261,7 +257,7 @@ class Logistics(object):
             msg = 'No vessel solutions found. Requirements: {}'.format(ves_req)
             module_logger.warning(msg)
             
-            if PRINT_FLAG:
+            if print_flag:
                 print msg
             
             om_log['findSolution'] = 'NoSolutionsFound'
@@ -271,7 +267,7 @@ class Logistics(object):
             # Estimating the schedule associated with all feasible logistic
             # solutions
             (log_phase,
-             SCHEDULE_FLAG) = self._sched_om(log_phase,
+             schedule_flag) = self._sched_om(log_phase,
                                              log_phase_id,
                                              site,
                                              device,
@@ -283,12 +279,12 @@ class Logistics(object):
                                              optimise_delay,
                                              custom_waiting)
             
-            if SCHEDULE_FLAG == 'NoWWindows':
+            if schedule_flag == 'NoWWindows':
                 
                 msg = 'No weather windows found'
                 module_logger.warning(msg)
                 
-                if PRINT_FLAG: print msg
+                if print_flag: print msg
                 
                 om_log['findSolution'] = 'NoWeatherWindowFound'
                 
@@ -306,7 +302,7 @@ class Logistics(object):
                 om_log['optimal'] = opt_sol(log_phase, log_phase_id)
                 om_log['findSolution'] = 'SolutionFound'
                 
-                if PRINT_FLAG:
+                if print_flag:
                     
                     print 'Final Solution Found!'
                     
@@ -331,7 +327,7 @@ class Logistics(object):
         
         stop_time = timeit.default_timer()
         
-        if PRINT_FLAG:
+        if print_flag:
             
             print 'Simulation Duration [s]: ' + str(stop_time - start_time)
             
@@ -424,14 +420,12 @@ def print_sched_pd(new, old):
                 if not new_obj.equals(old_obj):
                     print "fail compare"
                     return [False]
-                else:
-                    return [True]
+                return [True]
             
             if not new_obj == old_obj:
                 print "fail compare", new_obj, old_obj
                 return [False]
-            else:
-                return [True]
+            return [True]
             
         return result
     

@@ -16,7 +16,7 @@ handlers:
     class : logging.FileHandler
     formatter: simple
     level: DEBUG
-    filename: dtocean-reliability.log
+    filename: dtocean-maintenance.log
 loggers:
   'dtocean_maintenance':
     level: DEBUG
@@ -25,4 +25,3 @@ loggers:
 root:
   level: DEBUG
   handlers: [console]
-
