@@ -17,9 +17,9 @@
 
 # pylint: disable=redefined-outer-name
 
-import pytest
-
 import datetime as dt
+
+import pytest
 
 import numpy as np
 import pandas as pd
