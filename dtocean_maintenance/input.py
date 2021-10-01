@@ -254,11 +254,16 @@ class inputOM:
         RAM_Param (dict): This parameter records the information for talking to
             RAM module
             keys:
+                db (dict) [-]: Component database
+                elechier (dict) [-]: Electrical layout architecture
+                elecbom (dict) [-]: Electrical BOM
+                moorhier (dict) [-]: Moorings layout architecture
+                moorbom (dict) [-]: Moorings BOM
+                userhier (dict) [-]: User sub-systems architecture
+                userbom (dict) [-]: User sub-systems BOM
                 calcscenario (str) [-]: scenario for the calculation
-                eleclayout (str) [-]: Electrical layout architecture
-                pointer (class) [-]: pointer of dtocean-reliability class
-                severitylevel (str) [-]: Level of severity
-                systype (str) [-]: Type of system
+                kfactors (dict) [-]: kfactors indexed by component marker
+
 
         Logistic_Param (dict): This parameter records the information for
             talking to logistic module
@@ -496,21 +501,3 @@ class inputOM:
         '''
 
         return self.__Control_Param
-
-    # no implemented
-    def checkInput(self):
-
-        """
-        Used to assess the validity of the input given to the WP6
-        prior to perform any calculation. NOT IMPLEMENTED
-
-        Returns:
-            status (int):
-                identify whether an error is found (status<0) or not (status=0)
-            errStr (list):
-                error strings appended during the error occurence.
-        """
-        errStr = []
-        status = 0
-
-        return NotImplemented

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Bahram Panahandeh
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -248,10 +248,8 @@ def get_device_energy_df(uptime_df, device_ids, mean_power_per_device):
     # Energy calculation
     dev_energy_dict = {device_id: [] for device_id in device_ids}
     
-    for year, row in uptime_df.iterrows():
-        
+    for _, row in uptime_df.iterrows():
         for device_id in device_ids:
-    
             year_energy = row[device_id] * mean_power_per_device[device_id]
             dev_energy_dict[device_id].append(year_energy)
             
@@ -322,7 +320,7 @@ def get_opex_per_year(start_date,
 
             year_cost = 0.  
         
-            for name, comp_df in group_dict.iteritems():
+            for name, comp_df in group_dict.items():
                 
                 if year not in comp_df.index: continue
                     
@@ -413,12 +411,8 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
 
     # poison parameter
     loopNumber       = 2000
-    lowerPercentile  = 40
-    upperPercentile  = 70
     timeStepLoop     = []
     numberLoop       = []
-    numberLoopFilt   = []
-    timeStepLoopFilt = []
 
     dummyStartOperationDate = datetime.datetime(startOperationDate.year,
                                                 startOperationDate.month,
@@ -429,20 +423,21 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
                                 datetime.timedelta(days=simulationTime)
 
     # poisson trial loop
-    for lCnt in range(0, loopNumber):
+    for _ in range(0, loopNumber):
 
         timeStepAll = 0
         timeStep = []
         number = 0
+        
         # calculation loop
         while timeStepAll < simulationTime:
 
             # time dt
-            dt = -math.log(1.0 - random.random()) / failureRate
+            dt = -1 * math.log(random.random()) / failureRate
             timeStepAll = timeStepAll + dt
             number = number + 1
             timeStep.append(dt)
-
+        
         #delete last entries
         number = number - 1
         del timeStep[-1]
@@ -451,31 +446,13 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
         numberLoop.append(number)
         timeStepLoop.append(timeStep)
 
-    upperPercentileValue = np.percentile(numberLoop, upperPercentile)
-    lowerPercentileValue = np.percentile(numberLoop, lowerPercentile)
-
-    for lCnt in range(0, loopNumber):
-
-        if ((numberLoop[lCnt] >= lowerPercentileValue) &
-            (numberLoop[lCnt] <= upperPercentileValue)):
-
-            numberLoopFilt.append(numberLoop[lCnt])
-            timeStepLoopFilt.append(timeStepLoop[lCnt])
-
-    if len(numberLoopFilt) > 0:
-
-        loopIndex = random.randint(0, len(numberLoopFilt) - 1)
-        timeStep = timeStepLoopFilt[loopIndex]
-        number = numberLoopFilt[loopIndex]
-
-    else:
-
-        timeStep = []
-        number = 0
+    loopIndex = random.randint(0, len(numberLoop) - 1)
+    timeStep = timeStepLoop[loopIndex]
+    number = numberLoop[loopIndex]
 
     TimeStamp = dummyStartOperationDate
 
-    for iCnt in range(0, len(timeStep)):
+    for iCnt, _ in enumerate(timeStep):
 
         addTime = int(np.round(timeStep[iCnt]))
         TimeStamp = TimeStamp + datetime.timedelta(days=addTime)
@@ -489,3 +466,11 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
             break
 
     return randomList
+
+
+def df_fast_sort(df, col_to_sort):
+    
+    sort = np.argsort(df[col_to_sort].values)
+    df = df.reindex(df.index[sort])
+        
+    return df

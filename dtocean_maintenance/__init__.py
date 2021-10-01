@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#    Copyright (C) 2019 Mathew Topper
+#    Copyright (C) 2019-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -15,6 +15,36 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Define build number for packaging test
-from ._build import BUILD
-__build__ = BUILD
+import logging
+from pkg_resources import get_distribution
+
+from polite.paths import ObjDirectory, UserDataDirectory, DirectoryMap
+from polite.configuration import Logger
+
+# credentials
+__authors__ = ['DTOcean Developers']
+__version__ = get_distribution('dtocean-maintenance').version
+
+# Set default logging handler to avoid "No handler found" warnings.
+try:  # Python 2.7+
+    from logging import NullHandler
+except ImportError:
+    class NullHandler(logging.Handler):
+        def emit(self, record):
+            pass
+
+logging.getLogger(__name__).addHandler(NullHandler())
+
+
+def start_logging(level=None):
+
+    """Start python logger"""
+
+    objdir = ObjDirectory(__name__, "config")
+    datadir = UserDataDirectory("dtocean_maintenance", "DTOcean", "config")
+    dirmap = DirectoryMap(datadir, objdir)
+
+    log = Logger(dirmap)
+    log("dtocean_maintenance",
+        level=level,
+        info_message="Begin logging for dtocean_maintenance.")

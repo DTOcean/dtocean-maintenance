@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -14,6 +14,8 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# pylint: disable=redefined-outer-name
 
 import pytest
 
@@ -135,16 +137,10 @@ def data_point():
     return data_point
 
 
-@pytest.fixture
-def logistics_param():
+def test_LCOE_Statistics_call(mocker, data_point):
     
-    logistics_param = {"metocean": None}
-                  
-    return logistics_param
-
-
-def test_LCOE_Statistics_main(mocker, data_point, logistics_param):
-    
+    mocker.patch('dtocean_maintenance.logistics.Logistics.__init__',
+                 return_value=None)
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
                  return_value=None)
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
@@ -152,19 +148,44 @@ def test_LCOE_Statistics_main(mocker, data_point, logistics_param):
     mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
                  'WaitingTime.__init__',
                  return_value=None)
+    mocker.patch('dtocean_reliability.Network.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_reliability.Network.set_failure_rates',
+                 return_value=None)
+    
+    ram_param = {'db': None,
+                 'elechier': None,
+                 'elecbom': None,
+                 'moorhier': None,
+                 'moorbom': None,
+                 'userhier': None,
+                 'userbom': None,
+                 'calcscenario': None,
+                 'kfactors': None}
+    
+    logistics_param = {'equipments': None,
+                       'metocean': None,
+                       'ports': None,
+                       'vessels': None,
+                       'eq_sf': None,
+                       'port_sf': None,
+                       'vessel_sf': None,
+                       'schedule_OLC': None}
+    
     n_sims = 5
+    
     control = inputOM(None,
                       None,
                       None,
                       None,
                       None,
-                      None,
+                      ram_param,
                       logistics_param,
                       None,
                       {'numberOfSimulations': n_sims})
     
     test = LCOE_Statistics(control)
-    result = test.main()
+    result = test()
     keys = ["MetricsTable [-]",
             "OpexPerYear [Euro]",
             "energyPerYear [Wh]",
@@ -182,10 +203,12 @@ def test_LCOE_Statistics_main(mocker, data_point, logistics_param):
     assert len(result["energyPerDevice [Wh]"].columns) == n_sims
     assert len(result["downtimePerDevice [hour]"]) == 3
     assert len(result["energyPerDevice [Wh]"]) == 3
+
+
+def test_LCOE_Statistics_main_no_sims(mocker, data_point):
     
-    
-def test_LCOE_Statistics_main_no_sims(mocker, data_point, logistics_param):
-    
+    mocker.patch('dtocean_maintenance.logistics.Logistics.__init__',
+                 return_value=None)
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
                  return_value=None)
     mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
@@ -193,13 +216,38 @@ def test_LCOE_Statistics_main_no_sims(mocker, data_point, logistics_param):
     mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
                  'WaitingTime.__init__',
                  return_value=None)
+    mocker.patch('dtocean_reliability.Network.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_reliability.Network.set_failure_rates',
+                 return_value=None)
+    
+    ram_param = {'db': None,
+                 'elechier': None,
+                 'elecbom': None,
+                 'moorhier': None,
+                 'moorbom': None,
+                 'userhier': None,
+                 'userbom': None,
+                 'calcscenario': None,
+                 'kfactors': None}
+    
+    logistics_param = {'equipments': None,
+                       'metocean': None,
+                       'ports': None,
+                       'vessels': None,
+                       'eq_sf': None,
+                       'port_sf': None,
+                       'vessel_sf': None,
+                       'schedule_OLC': None}
+    
     n_sims = 0
+    
     control = inputOM(None,
                       None,
                       None,
                       None,
                       None,
-                      None,
+                      ram_param,
                       logistics_param,
                       None,
                       {'numberOfSimulations': n_sims})
@@ -208,29 +256,3 @@ def test_LCOE_Statistics_main_no_sims(mocker, data_point, logistics_param):
     
     with pytest.raises(ValueError):
         test.main()
-    
-    
-def test_LCOE_Statistics_call(mocker, data_point, logistics_param):
-    
-    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
-                 return_value=None)
-    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
-                 return_value=data_point)
-    mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
-                 'WaitingTime.__init__',
-                 return_value=None)    
-    n_sims = 5
-    control = inputOM(None,
-                      None,
-                      None,
-                      None,
-                      None,
-                      None,
-                      logistics_param,
-                      None,
-                      {'numberOfSimulations': n_sims})
-    
-    test = LCOE_Statistics(control)
-    test()
-    
-    assert True

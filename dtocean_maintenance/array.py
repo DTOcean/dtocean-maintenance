@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Bahram Panahandeh
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -38,12 +38,9 @@ module_logger = logging.getLogger(__name__)
 
 class Array(object):
 
-    def __init__(self, startOperationDate,
+    def __init__(self, ram_network,
+                       startOperationDate,
                        simulationTimeDay,
-                       rcompvalues,
-                       rsubsysvalues,
-                       eleclayout,
-                       systype,
                        eventsTableKeys,
                        NoPoisson_eventsTableKeys,
                        printWP6):
@@ -51,12 +48,9 @@ class Array(object):
         '''__init__ function: Saves the arguments in internal variabels.
 
         Args:
+            ram_network (object): RAM Network object
             startOperationDate (datetime): date of simulation start
             simulationTimeDay (float): simulation time in days
-            rcompvalues (nested list): rcompvalues from RAM
-            rsubsysvalues (nested list): rsubsysvalues from RAM
-            eleclayout (str): electrical layout of array
-            systype (str): system type of devices
             eventsTableKeys (list of str): keys of event table dataframe
             NoPoisson_eventsTableKeys (list of str):
                 keys of NoPoisson event table dataframe
@@ -68,17 +62,14 @@ class Array(object):
                 internal flag in order to print messages
             self.__dayHours (float): hours in one day
             self.__yearDays (float): days in one year
-            self.__rsubsysvalues (nested list): rsubsysvalues from RAM
-            self.__rcompvalues (nested list): rcompvalues from RAM
-            self.__simulationTime (float): simulation time in days
+            self.__ram_network (object): RAM Netwok object
+            self.__simulationTimeDay (float): simulation time in days
             self.__startOperationDate (datetime): Start of operation date
             self.__eleclayout (str): electrical layout of array
             self.__systype (str): system type of devices
             self.__eventsTableKeys (list of str): keys of event table dataframe
             self.__FM_ID_RA_ID (dictionary):
                 Id of defined repair actions between logistics and maintenance
-            self.__ramTableKeys (list of str): Keys of RAM table
-            self.__ramTable (dataframe): RAM table
 
         '''
 
@@ -90,34 +81,18 @@ class Array(object):
 
         # Days in one year
         self.__yearDays = 365.25
-
-       # list rsubsysvalues from RAM (A4)
-        self.__rsubsysvalues = rsubsysvalues
-
-        # list rcompvalues from RAM
-        self.__rcompvalues = rcompvalues
-
+        
         # simulation time in day
         self.__simulationTimeDay = simulationTimeDay
 
         # Start of operation date
         self.__startOperationDate = startOperationDate
 
-        # Electrical layout architecture. If None assume radial
-        if eleclayout is None:
-            self.__eleclayout = 'radial'
-        else:
-            self.__eleclayout = eleclayout
-
-        # systype
-        self.__systype = systype
-
         # keys of event table
         self.__eventsTableKeys = eventsTableKeys
 
         # keys of NoPoisson event table
         self.__NoPoisson_eventsTableKeys = NoPoisson_eventsTableKeys
-
 
         # Id of defined repair actions between WP5 and WP6
         self.__FM_ID_RA_ID = {}
@@ -141,25 +116,41 @@ class Array(object):
         self.__FM_ID_RA_ID['RtP5']  = 'LpM8'
         self.__FM_ID_RA_ID['RtP6']  = 'LpM8'
         
-        # Keys of RAM table
-        self.__ramTableKeys  = ['deviceID',
-                                'subSystem',
-                                'failureRate',
-                                'breakDown']
-                
-        # Original RAM table
-        self.__ramTable = None
+        # RAM Network object
+        self.__ram_network = ram_network
+        
+        # Pre-populate RAM metrics per sub-system type
+        self.__ram_subsystems = ['Export cable',
+                                 'Substation',
+                                 'Elec sub-system',
+                                 'Station keeping',
+                                 'Umbilical',
+                                 'Support structure',
+                                 'Hydrodynamic',
+                                 'Pto',
+                                 'Control']
+        
+        # Store poisson process function results
+        self.__Poisson = None
+        
+        def get_metrics_df(x):
+            metrics = ram_network.get_subsystem_metrics(x)
+            if metrics is None: return None
+            df = pd.DataFrame(metrics)
+            df = df.set_index("System")
+            return df
+        
+        self.__ram_subsystem_metrics = {x: get_metrics_df(x)
+                                                for x in self.__ram_subsystems}
         
         return
-                         
+    
     # Failure estimation module
     def executeFEM(self, arrayDict,
                          eventsTable,
                          eventsTableNoPoisson,
                          component,
                          failureMode,
-                         repairAction,
-                         inspection,
                          annual_Energy_Production_perD):
 
         '''executeFEM function: Generates tables for maintenance analysis.
@@ -177,17 +168,10 @@ class Array(object):
                 table which contains the information about components
             failureMode (dataframe):
                 table which contains the information about failure modes
-            repairAction (dataframe):
-                table which contains the information about repair actions
-            inspection (dataframe):
-                table which contains the information about inspections
             annual_Energy_Production_perD (list of float):
                 annual energy production of devices
 
         '''
-
-        # read the necessary information from RAM
-        self.__readFromRAM()
 
         # EventsTable (DataFrame)
         failureRateList = []
@@ -213,7 +197,7 @@ class Array(object):
         AlarmListNoPoisson = []
         failureRateListNoPoisson = []
 
-        # Which component type is definedt
+        # Which component type is defined
         for iCnt in range(0, component.shape[1]):
 
             column = component.columns.values[iCnt]
@@ -222,106 +206,67 @@ class Array(object):
             componentType = component[column]['Component_type']
 
             arrayDict[componentID] = {}
-            arrayDict[componentID]['Breakdown'] = []
             arrayDict[componentID]['NrOfFM'] = \
                                 component[componentID]['number_failure_modes']
 
             arrayDict[componentID]['CoBaMa_initOpEventsList'] = []
             arrayDict[componentID]['CoBaMa_FR List'] = []
-
-            if 'device' in componentType:
-
-                RamTableQueryDeviceID = componentType
-
-                if (componentSubType == 'Mooring line' or
-                    componentSubType == 'Foundation'):
-
-                    RamTableQuerySubSystem = \
-                                        'M&F sub-system mooring foundation'
-
-                elif componentSubType == 'Dynamic cable':
-
-                    RamTableQuerySubSystem = 'M&F sub-system dynamic cable'
-
-                else:
-
-                    RamTableQuerySubSystem = componentSubType
-
-            elif 'subhub' in componentType:
-
-                RamTableQueryDeviceID = componentType
-
+            
+            # Get sub-system metrics (all systems)
+            if componentSubType in ['Foundation', 'Moorings lines']:
+                metrics = self.__ram_subsystem_metrics['Station keeping']
             else:
-
-                RamTableQueryDeviceID  = 'Array'
-                RamTableQuerySubSystem = componentType[0:-3]
-
-            if 'subhub' in componentType:
-
-                dummyRamTable = self.__ramTable.loc[
-                    (self.__ramTable['deviceID'] == RamTableQueryDeviceID)]
-
+                metrics = self.__ram_subsystem_metrics[componentSubType]
+            
+            if metrics is None:
+                
+                err_str = ("System type '{}' is not available in the "
+                           "RAM").format(componentSubType)
+                raise RuntimeError(err_str)
+            
+            # Get metric for (unique) parent system
+            system_metrics = metrics.loc[componentType]
+            base_failure_rate = system_metrics["lambda"] * 8766
+            
+            if componentSubType in ['Foundation', 'Moorings lines']:
+                
+                link_idx = system_metrics["Link"]
+                system = self.__ram_network[link_idx]
+                
+                systemP = system.get_probability_proportion(componentSubType)
+                arrayDict[componentID]['FR'] = base_failure_rate * systemP
+            
             else:
-
-                dummyRamTable = self.__ramTable.loc[
-                    (self.__ramTable['deviceID'] == \
-                                                 RamTableQueryDeviceID) &
-                    (self.__ramTable['subSystem'] == \
-                                                 RamTableQuerySubSystem)]
-
-            if len(dummyRamTable) > 0:
-
-                dummyRamTable.reset_index(drop=True, inplace=True)
-
-                failure = dummyRamTable.failureRate
-
-                if 'subhub' in componentType:
-                    arrayDict[componentID]['FR'] = failure[0] + failure[1]
-                else:
-                    arrayDict[componentID]['FR'] = failure[0]
-
-                # M&F -> 50% Mooring and 50% foundation
-                if (componentSubType == 'Mooring line' or
-                    componentSubType == 'Foundation'):
-
-                    arrayDict[componentID]['FR'] *= 0.5
-
+                
+                arrayDict[componentID]['FR'] = base_failure_rate
+            
+            # Get breakdowns
+            if componentType == "array":
+                arrayDict[componentID]['Breakdown'] = ['All']
             else:
-
-                # failure rate will be read from component table
-                arrayDict[componentID]['FR'] = component[componentID][
-                                                            'failure_rate']
-
-                if self.__dtocean_maintenance_PRINT_FLAG:
-
-                    msgStr = ('WP6: The failure rate of {} can not be '
-                              'read from dtocean-reliability. Therefore '
-                              'the failure rate is read from component '
-                              'table').format(componentID)
-                    print msgStr
-
+                arrayDict[componentID]['Breakdown'] = \
+                                                system_metrics["Curtails"]
+            
             arrayDict[componentID]['FR List'] = []
-
-            device_systems = ['Hydrodynamic',
+            
+            device_systems = ['Elec sub-system',
+                              'Hydrodynamic',
                               'Pto',
                               'Control',
                               'Support structure',
-                              'Mooring line',
+                              'Moorings lines',
                               'Foundation',
-                              'Dynamic cable',
-                              'Array elec sub-system']
+                              'Umbilical']
             
             if componentSubType in device_systems:
 
                 deviceID = component[column]['Component_type']
                 logic = deviceID in arrayDict.keys()
 
-                # This is odd. Must be some repetition occuring which this
-                # is meant to stop...
-
+                # Initialise device keys only once
                 if not logic:
 
-                    loop = int(deviceID.rsplit('device')[1]) - 1
+                    dev_idx = int(deviceID.rsplit('device')[1]) - 1
                     arrayDict[deviceID] = {}
 
                     # for UnCoMa
@@ -360,7 +305,7 @@ class Array(object):
 
                     # general
                     arrayDict[deviceID]['AnnualEnergyWP2'] = \
-                                        annual_Energy_Production_perD[loop]
+                                        annual_Energy_Production_perD[dev_idx]
                     arrayDict[deviceID]['AnnualEnergyWP6'] = 0.0
                     arrayDict[deviceID]['DownTime'] = 0.0
 
@@ -368,11 +313,13 @@ class Array(object):
 
                 arrayDict[componentID]['UnCoMaCostLogistic']    = []
                 arrayDict[componentID]['UnCoMaCostOM']          = []
+                arrayDict[componentID]['UnCoMaNoWeatherWindow'] = False
+
                 arrayDict[componentID]['CaBaMaCostLogistic']    = []
                 arrayDict[componentID]['CaBaMaCostOM']          = []
+
                 arrayDict[componentID]['CoBaMaCostLogistic']    = []
                 arrayDict[componentID]['CoBaMaCostOM']          = []
-                arrayDict[componentID]['UnCoMaNoWeatherWindow'] = False
                 arrayDict[componentID]['CoBaMaNoWeatherWindow'] = False
 
             n_modes = component[componentID]['number_failure_modes']
@@ -384,93 +331,6 @@ class Array(object):
 
                 # Failure rate from RAM or database
                 strDummy = componentID + '_' + str(iCnt1 + 1)
-
-                if iCnt1 == 0:
-
-                    # failure rate will be read from component table
-                    if 'device' in componentType:
-
-                        RamTableQueryDeviceID  = componentType
-
-                        if (componentSubType == 'Mooring line' or
-                            componentSubType == 'Foundation'):
-
-                            RamTableQuerySubSystem = \
-                                            'M&F sub-system mooring foundation'
-
-                        elif componentSubType == 'Dynamic cable':
-
-                            RamTableQuerySubSystem = \
-                                            'M&F sub-system dynamic cable'
-
-                        else:
-
-                            RamTableQuerySubSystem = componentSubType
-
-
-                    elif 'subhub' in componentType:
-
-                        RamTableQueryDeviceID = componentType
-
-                    else:
-
-                        RamTableQueryDeviceID  = 'Array'
-                        RamTableQuerySubSystem = componentType[0:-3]
-
-                    if 'subhub' in componentType:
-
-                        dummyRamTable = self.__ramTable.loc[
-                            (self.__ramTable['deviceID'] == \
-                                                     RamTableQueryDeviceID)]
-
-                    else:
-                        dummyRamTable = self.__ramTable.loc[
-                            (self.__ramTable['deviceID'] == \
-                                                     RamTableQueryDeviceID) &
-                            (self.__ramTable['subSystem'] ==
-                                                     RamTableQuerySubSystem)]
-
-                    if len(dummyRamTable > 0):
-
-                        dummyRamTable.reset_index(drop=True, inplace=True)
-                        arrayDict[componentID]['Breakdown'].append(
-                                                dummyRamTable.breakDown[0])
-
-                        breakdown = arrayDict[componentID]['Breakdown']
-
-                        if (len(breakdown[0]) > 0 and
-                            'Array elec sub-system' in componentID):
-
-                            dummyList = []
-
-                            for iCnt2 in range(0, len(breakdown[0])):
-                                dummyList.append(breakdown[0][iCnt2])
-
-                            arrayDict[componentID]['Breakdown'] = dummyList
-
-                    else:
-
-                       if ('Substation' in componentID or
-                           'Export Cable' in componentID):
-
-                           arrayDict[componentID]['Breakdown'].append('All')
-
-                       elif 'device' in componentType:
-
-                           arrayDict[componentID]['Breakdown'].append(
-                                                               componentType)
-
-                       if self.__dtocean_maintenance_PRINT_FLAG == True:
-
-                           msgStr = ('WP6: The impact of {} on devices can '
-                                     'not be analysed from '
-                                     'dtocean-reliability').format(componentID)
-                           print msgStr
-
-                    if 'subhub' in componentType:
-                        arrayDict[componentID]['Breakdown'] = \
-                                    arrayDict[componentID]['Breakdown'][0]
-
 
                 failureRate = arrayDict[componentID]['FR'] * \
                                 failureMode[strDummy]['mode_probability'] / \
@@ -498,7 +358,7 @@ class Array(object):
                 self.__calcPoissonEvents(failureRate)
                 failureRateListNoPoisson.append(failureRate)
 
-                if 0 < len(self.__Poisson):
+                if self.__Poisson:
                     AlarmListNoPoisson.append(self.__Poisson[0])
                 else:
                     AlarmListNoPoisson.append(self.__startOperationDate)
@@ -596,7 +456,7 @@ class Array(object):
         '''calcPoissonEvents function: Calls the poisson process function
 
         Args:
-            failureRate (float) : Failure rate of component
+            failureRate (float) : Failure rate of component (per year)
 
         '''
 
@@ -606,220 +466,7 @@ class Array(object):
                                       self.__simulationTimeDay,
                                       rate_day)
 
-        if type(returnValue) == list and 1 <= len(returnValue):
+        if isinstance(returnValue, list) and len(returnValue) >= 1:
             self.__Poisson = returnValue
         else:
             self.__Poisson = []
-
-    def __readFromRAM(self):
-
-        '''readFromRAM function: Read the necessary information from RAM.
-
-        '''
-
-        ramDeviceIDList    = []
-        ramSubSystemList   = []
-        ramFailureRateList = []
-        ramBreakDownList   = []
-
-        # read the failure rates from self.__rsubsysvalues
-        for iCnt in range(0, len(self.__rsubsysvalues)):
-
-            system = self.__rsubsysvalues[iCnt]
-
-            if (system[0] not in ["PAR", "SER"] and
-                system[0][1] in ['Export Cable', 'Substation']and
-                'array' in system[0][2]):
-
-                ramFailureRateList.append(system[0][-1])
-                ramSubSystemList.append(system[0][1])
-                ramDeviceIDList.append('Array')
-                ramBreakDownList.append('All')
-
-                continue
-
-            if (self.__eleclayout == 'radial' or
-                self.__eleclayout == 'singlesidedstring' or
-                self.__eleclayout == 'doublesidedstring'):
-
-                if not 'device' in system[0][0][2]:
-
-                    msgStr = "Device not detected in system hierarchy"
-                    module_logger.debug(msgStr)
-
-                    continue
-
-                # Number of devices
-                for iCnt1 in range(0, len(system)):
-
-                    flagMFSubSystem = False
-                    subsystem = system[iCnt1]
-
-                    # Number of subsystems
-                    for iCnt2 in range(0, len(subsystem)):
-
-                        dummyStr = subsystem[iCnt2][1]
-
-                        # E-Mail of Sam
-                        # The first one is for the mooring/Foundation
-                        # (mooring line/anchor)
-                        if ('M&F sub-system' in dummyStr and
-                            flagMFSubSystem == False):
-
-                            dummyStr = dummyStr + ' mooring foundation'
-                            flagMFSubSystem = True
-
-                        #  The second one is for the the umbilical
-                        # cable
-                        elif ('M&F sub-system' in dummyStr and
-                              flagMFSubSystem == True):
-
-                            dummyStr = dummyStr + ' dynamic cable'
-
-                        ramSubSystemList.append(dummyStr)
-                        ramDeviceIDList.append(subsystem[iCnt2][2])
-
-                        # In case of 'singlesidedstring' or
-                        # 'doublesidedstring' failure rate is a list
-                        dummyList = subsystem[iCnt2][4]
-
-                        if (type(dummyList) == list and
-                            subsystem[iCnt2][1] == 'Array elec sub-system'):
-                            ramFailureRateList.append(subsystem[iCnt2][4][1])
-                        else:
-                            ramFailureRateList.append(subsystem[iCnt2][4])
-
-                        # else part below
-                        if 'Array elec sub-system' in subsystem[iCnt2][1]:
-
-                            dummyList = []
-
-                            if (self.__eleclayout == 'radial'):
-
-                                for iCnt3 in range(0, iCnt1 + 1):
-                                    dummyList.append(system[iCnt3][iCnt2][2])
-
-                                ramBreakDownList.append(dummyList)
-
-                            else:
-
-                                ramBreakDownList.append('-')
-
-                        else:
-
-                            ramBreakDownList.append(subsystem[iCnt2][2])
-
-            elif self.__eleclayout == 'multiplehubs':
-
-                if not 'subhub' in system[1][0][0][2]:
-
-                    msgStr = "Subhub not detected in system hierarchy"
-                    module_logger.debug(msgStr)
-
-                    continue
-
-                for iCnt1 in range(0, len(system[1])):  # loop over subhubs
-
-                    subhub = system[1][iCnt1]
-
-                    if ('Substation' in subhub[0][1] or
-                        'Elec sub-system' in subhub[0][1]):
-
-                        ramFailureRateList.append(subhub[0][-1])
-                        ramSubSystemList.append(subhub[0][1])
-                        ramDeviceIDList.append(subhub[0][2])
-
-                        # Which devices are conntected to the sub Hub
-                        dummyList = []
-
-                        # loop over subhubs
-                        for ii1 in range(0, len(subhub)):
-
-                            subhub2 = system[1][ii1]
-
-                            if not 'device' in subhub2[0][0][2]: continue
-
-                            # Number of devices
-                            for ii2 in range(0, len(subhub2)):
-
-                                device = subhub2[ii2][0][2]
-                                dummyList.append(device)
-
-                        ramBreakDownList.append(dummyList)
-
-                    else:
-
-                        # Number of devices
-                        for iCnt2 in range(0, len(subhub)):
-
-                            flagMFSubSystem = False
-                            device = subhub[iCnt2]
-
-                            # Number of subsystems
-                            for iCnt3 in range(0, len(subhub[0])):
-
-                                subsystem = device[iCnt3]
-
-                                dummyStr = subsystem[1]
-
-                                # E-Mail of Sam
-                                #  the first one is for the mooring/Foundation
-                                if ('M&F sub-system' in dummyStr and
-                                    flagMFSubSystem == False):
-
-                                    dummyStr = dummyStr + ' mooring foundation'
-                                    flagMFSubSystem = True
-
-                                # The second one is for the the umbilical
-                                # cable
-                                if ('M&F sub-system' in dummyStr and
-                                    flagMFSubSystem == True):
-
-                                    dummyStr = dummyStr + ' dynamic cable'
-
-                                ramSubSystemList.append(dummyStr)
-                                ramDeviceIDList.append(subsystem[2])
-                                ramFailureRateList.append(subsystem[4])
-
-                                # else part below
-                                if 'Array elec sub-system' in dummyStr:
-
-                                    dummyList = []
-
-                                    for ii1 in range(0, iCnt2 + 1):
-                                        dummyList.append(subhub[ii1][0][2])
-
-                                    ramBreakDownList.append(dummyList)
-
-                                else:
-
-                                    ramBreakDownList.append(subsystem[2])
-
-        # [1/hour] -> [1/year]
-        for iCnt in range(0, len(ramFailureRateList)):
-
-            yearhours = self.__dayHours * self.__yearDays
-            ramFailureRateList[iCnt] = ramFailureRateList[iCnt] * yearhours
-
-        ramData = {self.__ramTableKeys[0]: ramDeviceIDList,
-                   self.__ramTableKeys[1]: ramSubSystemList,
-                   self.__ramTableKeys[2]: ramFailureRateList,
-                   self.__ramTableKeys[3]: ramBreakDownList}
-
-        self.__ramTable = pd.DataFrame(ramData)
-        
-        # Patch double counting of umbilical cable
-        dynamic_search = (self.__ramTable['subSystem'] ==
-                                              "M&F sub-system dynamic cable")
-        array_elec_search = (self.__ramTable['subSystem'] == 
-                                                     "Array elec sub-system")
-        
-        if dynamic_search.any() and array_elec_search.any():
-            
-            umbilical_fr = self.__ramTable.loc[dynamic_search,
-                                               "failureRate"].iloc[0]
-            fix = self.__ramTable.loc[array_elec_search,
-                                      "failureRate"] - umbilical_fr
-            self.__ramTable.loc[array_elec_search, "failureRate"] = fix
-        
-        return

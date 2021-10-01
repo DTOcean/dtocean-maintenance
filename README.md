@@ -1,6 +1,6 @@
 [![appveyor](https://ci.appveyor.com/api/projects/status/github/DTOcean/dtocean-maintenance?branch=master&svg=true)](https://ci.appveyor.com/project/DTOcean/dtocean-maintenance)
 [![codecov](https://codecov.io/gh/DTOcean/dtocean-maintenance/branch/master/graph/badge.svg)](https://codecov.io/gh/DTOcean/dtocean-maintenance)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/996c77c622ec4bccadfde7eec4c2b14f)](https://www.codacy.com/project/H0R5E/dtocean-maintenance/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-maintenance&amp;utm_campaign=Badge_Grade_Dashboard&amp;branchId=11739760)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/97853f24ddd042ee82ee3cb6adef8b74)](https://www.codacy.com/gh/DTOcean/dtocean-maintenance/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-maintenance&amp;utm_campaign=Badge_Grade)
 [![release](https://img.shields.io/github/release/DTOcean/dtocean-maintenance.svg)](https://github.com/DTOcean/dtocean-maintenance/releases/latest)
 
 # DTOcean Operations and Maintenance Module
@@ -18,11 +18,11 @@ See [dtocean-app](https://github.com/DTOcean/dtocean-app) or [dtocean-core](
 https://github.com/DTOcean/dtocean-app) to use this package within the DTOcean
 ecosystem.
 
-* For python 2.7 only.
+\* For python 2.7 only.
 
-## maintenance
+## Installation
 
-maintenance and development of dtocean-maintenance uses the [Anaconda 
+Installation and development of dtocean-electrical uses the [Anaconda 
 Distribution](https://www.anaconda.com/distribution/) (Python 2.7)
 
 ### Conda Package
@@ -50,9 +50,16 @@ $ conda activate _dtocean_oandm
 $ copy .condarc %CONDA_PREFIX%
 ```
 
-Install [polite](https://github.com/DTOcean/polite), [dtocean-logistics](
-https://github.com/DTOcean/dtocean-logistics), [dtocean-economics](
-https://github.com/DTOcean/dtocean-economics) and [dtocean-reliability](
+OR, if you're using Powershell:
+
+```
+$ conda activate _dtocean_oandm
+$ copy .condarc $env:CONDA_PREFIX
+```
+
+Install [polite](https://github.com/DTOcean/polite), [dtocean-economics](
+https://github.com/DTOcean/dtocean-economics) [dtocean-logistics](
+https://github.com/DTOcean/dtocean-logistics), and [dtocean-reliability](
 https://github.com/DTOcean/dtocean-reliability) into the environment. For
 example, if installing them from source:
 
@@ -63,13 +70,13 @@ $ pip install -e .
 ```
 
 ```
-$ cd \\path\\to\\dtocean-logistics
+$ cd \\path\\to\\dtocean-economics
 $ conda install --file requirements-conda-dev.txt
 $ pip install -e .
 ```
 
 ```
-$ cd \\path\\to\\dtocean-economics
+$ cd \\path\\to\\dtocean-logistics
 $ conda install --file requirements-conda-dev.txt
 $ pip install -e .
 ```
@@ -109,13 +116,13 @@ $ conda activate _dtocean_oandm
 Install packages required for testing to the environment (one time only):
 
 ```
-$ conda install -y pytest pytest-mock
+$ conda install mock pytest pytest-mock
 ```
 
 Run the tests:
 
 ``` 
-$ py.test tests
+$ pytest tests
 ```
 
 ### Uninstall

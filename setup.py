@@ -8,26 +8,29 @@
 .. moduleauthor:: Mathew Topper <mathew.topper@tecnalia.com>
 """
 
+# pylint: disable=wrong-import-order
+
 import os
 import sys
-
 from distutils.cmd import Command
+
+import yaml
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
-
+    
     def initialize_options(self):
         TestCommand.initialize_options(self)
         self.pytest_args = []
-
+    
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
-
+    
     def run_tests(self):
         #import here, cause outside the eggs aren't loaded
         import pytest
@@ -73,19 +76,41 @@ class CleanPyc(Command):
                 yield os.path.join(root, fname)
 
 
+def read_yaml(rel_path):
+    with open(rel_path, 'r') as stream:
+        data_loaded = yaml.safe_load(stream)
+    return data_loaded
+
+
+def get_appveyor_version():
+    
+    data = read_yaml("appveyor.yml")
+    
+    if "version" not in data:
+        raise RuntimeError("Unable to find version string.")
+    
+    appveyor_version = data["version"]
+    last_dot_idx = appveyor_version.rindex(".")
+    
+    return appveyor_version[:last_dot_idx]
+
+
 setup(name='dtocean-maintenance',
-      version='2.0.0',
+      version=get_appveyor_version(),
       description='The maintenance operations module for the DTOcean tools',
       maintainer='Mathew Topper',
       maintainer_email='mathew.topper@dataonlygreater.com',
       license="GPLv3",
       packages=find_packages(),
+      setup_requires=['pyyaml'],
       install_requires=[
-          'dtocean-economics==2.0.0',
-          'dtocean-logistics==2.0.0',
-          'dtocean-reliability==2.0.0',
+          'dtocean-economics >= 2.0, <3',
+          'dtocean-logistics >= 3.0, <4',
+          'dtocean-reliability >= 3.0, <4',
           'numpy',
-          'pandas>=0.17'
+          'pandas >=0.17',
+          'polite >=0.9, <1',
+          'setuptools'
       ],
       zip_safe=False, # Important for reading config files
       tests_require=['pytest',
@@ -94,4 +119,3 @@ setup(name='dtocean-maintenance',
                   'cleanpyc': CleanPyc,
                   },
       )
-      
