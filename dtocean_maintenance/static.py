@@ -248,10 +248,8 @@ def get_device_energy_df(uptime_df, device_ids, mean_power_per_device):
     # Energy calculation
     dev_energy_dict = {device_id: [] for device_id in device_ids}
     
-    for year, row in uptime_df.iterrows():
-        
+    for _, row in uptime_df.iterrows():
         for device_id in device_ids:
-    
             year_energy = row[device_id] * mean_power_per_device[device_id]
             dev_energy_dict[device_id].append(year_energy)
             
@@ -322,7 +320,7 @@ def get_opex_per_year(start_date,
 
             year_cost = 0.  
         
-            for name, comp_df in group_dict.iteritems():
+            for name, comp_df in group_dict.items():
                 
                 if year not in comp_df.index: continue
                     
@@ -454,7 +452,7 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
 
     TimeStamp = dummyStartOperationDate
 
-    for iCnt in range(0, len(timeStep)):
+    for iCnt, _ in enumerate(timeStep):
 
         addTime = int(np.round(timeStep[iCnt]))
         TimeStamp = TimeStamp + datetime.timedelta(days=addTime)

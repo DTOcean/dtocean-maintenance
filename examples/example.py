@@ -5,6 +5,8 @@
                   Mathew Topper <dataonlygreater@gmail.com>
 """
 
+# pylint: disable=eval-used
+
 import os
 import sys
 import time

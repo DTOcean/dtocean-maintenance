@@ -224,15 +224,6 @@ class Logistics(object):
         om_port_index = om['Port_Index [-]'].iloc[0]
         om_port = self._ports.iloc[om_port_index]
         
-        # Check the presence of the lease area entry point.
-        # If this data does not exit use first position of the site data
-        if len(entry_point)==0:
-            entry_point['x coord [m]'] = site['x coord [m]'].iloc[0]
-            entry_point['y coord [m]'] = site['y coord [m]'].iloc[0]
-            entry_point['zone [-]'] = site['zone [-]'].iloc[0]
-            entry_point['bathymetry [m]'] = site['bathymetry [m]'].iloc[0]
-            entry_point['soil type [-]'] = site['soil type [-]'].iloc[0]
-        
         (om_log,
          log_phase,
          match_flag,

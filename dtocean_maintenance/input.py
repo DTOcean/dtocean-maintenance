@@ -501,21 +501,3 @@ class inputOM:
         '''
 
         return self.__Control_Param
-
-    # no implemented
-    def checkInput(self):
-
-        """
-        Used to assess the validity of the input given to the WP6
-        prior to perform any calculation. NOT IMPLEMENTED
-
-        Returns:
-            status (int):
-                identify whether an error is found (status<0) or not (status=0)
-            errStr (list):
-                error strings appended during the error occurence.
-        """
-        errStr = []
-        status = 0
-
-        return NotImplemented

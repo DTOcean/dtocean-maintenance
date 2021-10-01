@@ -1482,8 +1482,6 @@ class LCOE_Calculator(object):
                                          self.__eventsTableNoPoisson,
                                          self.__Component,
                                          self.__Failure_Mode,
-                                         self.__Repair_Action,
-                                         self.__Inspection,
                                          self.__annual_Energy_Production_perD)
 
         if (self.__Farm_OM['calendar_based_maintenance'] == True or

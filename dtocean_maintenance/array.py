@@ -94,7 +94,6 @@ class Array(object):
         # keys of NoPoisson event table
         self.__NoPoisson_eventsTableKeys = NoPoisson_eventsTableKeys
 
-
         # Id of defined repair actions between WP5 and WP6
         self.__FM_ID_RA_ID = {}
         self.__FM_ID_RA_ID['Insp1'] = 'LpM1'
@@ -131,6 +130,9 @@ class Array(object):
                                  'Pto',
                                  'Control']
         
+        # Store poisson process function results
+        self.__Poisson = None
+        
         def get_metrics_df(x):
             metrics = ram_network.get_subsystem_metrics(x)
             if metrics is None: return None
@@ -149,8 +151,6 @@ class Array(object):
                          eventsTableNoPoisson,
                          component,
                          failureMode,
-                         repairAction,
-                         inspection,
                          annual_Energy_Production_perD):
 
         '''executeFEM function: Generates tables for maintenance analysis.
@@ -168,10 +168,6 @@ class Array(object):
                 table which contains the information about components
             failureMode (dataframe):
                 table which contains the information about failure modes
-            repairAction (dataframe):
-                table which contains the information about repair actions
-            inspection (dataframe):
-                table which contains the information about inspections
             annual_Energy_Production_perD (list of float):
                 annual energy production of devices
 
