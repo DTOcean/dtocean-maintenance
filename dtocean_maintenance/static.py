@@ -425,7 +425,7 @@ def poisson_process(startOperationDate, simulationTime, failureRate):
                                 datetime.timedelta(days=simulationTime)
 
     # poisson trial loop
-    for lCnt in range(0, loopNumber):
+    for _ in range(0, loopNumber):
 
         timeStepAll = 0
         timeStep = []

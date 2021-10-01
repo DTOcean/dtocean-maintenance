@@ -81,7 +81,6 @@ $ conda install --file requirements-conda-dev.txt
 $ pip install -e .
 ```
 
-
 ```
 $ cd \\path\\to\\dtocean-reliability
 $ conda install --file requirements-conda-dev.txt

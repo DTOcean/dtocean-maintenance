@@ -18,11 +18,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     initialisation.
 -   Integrated changes to dtocean-reliability module, with the following
     impacts:
-    +   Storing a single Network object reduces repetitive initialisation.
-    +   Improved identification of curtailed devices upon string failure.
-    +   Integration of k-factors into reliability calculations.
-    +   The reliability input interface (RAM_Param) has changed.
-
+    -   Storing a single Network object reduces repetitive initialisation.
+    -   Improved identification of curtailed devices upon string failure.
+    -   Integration of k-factors into reliability calculations.
+    -   The reliability input interface (RAM_Param) has changed.
 
 ### Removed
 

@@ -142,7 +142,7 @@ def test_Array___calcPoissonEvents(eventsTableKeys,
     
     array._Array__calcPoissonEvents(10)
     
-    assert len(array._Array__Poisson) > 0
+    assert array._Array__Poisson
 
 
 def test_Array___calcPoissonEvents_empty(eventsTableKeys,

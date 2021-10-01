@@ -8,6 +8,8 @@
 .. moduleauthor:: Mathew Topper <mathew.topper@tecnalia.com>
 """
 
+# pylint: disable=wrong-import-order
+
 import os
 import sys
 from distutils.cmd import Command
