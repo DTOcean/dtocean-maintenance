@@ -256,3 +256,54 @@ def test_LCOE_Statistics_main_no_sims(mocker, data_point):
     
     with pytest.raises(ValueError):
         test.main()
+
+
+def test_LCOE_Statistics_main_networks(mocker, data_point):
+    
+    mocker.patch('dtocean_maintenance.logistics.Logistics.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_maintenance.main.LCOE_Calculator.executeCalc',
+                 return_value=data_point)
+    mocker.patch('dtocean_logistics.performance.schedule.schedule_shared.'
+                 'WaitingTime.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_reliability.Network.__init__',
+                 return_value=None)
+    mocker.patch('dtocean_reliability.Network.set_failure_rates',
+                 return_value=None)
+    
+    ram_param = {'db': None,
+                 'elechier': {},
+                 'elecbom': {},
+                 'moorhier': {},
+                 'moorbom': {},
+                 'userhier': {},
+                 'userbom': {},
+                 'calcscenario': None,
+                 'kfactors': None}
+    
+    logistics_param = {'equipments': None,
+                       'metocean': None,
+                       'ports': None,
+                       'vessels': None,
+                       'eq_sf': None,
+                       'port_sf': None,
+                       'vessel_sf': None,
+                       'schedule_OLC': None}
+    
+    n_sims = 1
+    
+    control = inputOM(None,
+                      None,
+                      None,
+                      None,
+                      None,
+                      ram_param,
+                      logistics_param,
+                      None,
+                      {'numberOfSimulations': n_sims})
+    
+    test = LCOE_Statistics(control)
+    test.main()
