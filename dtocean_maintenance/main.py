@@ -150,12 +150,24 @@ class LCOE_Statistics(object):
         # Single RAM network
         ram_param = self.__inputOMPtr.get_RAM_Param()
         
-        electrical_network = SubNetwork(ram_param['elechier'],
-                                        ram_param['elecbom'])
-        moorings_network = SubNetwork(ram_param['moorhier'],
-                                      ram_param['moorbom'])
-        user_network = SubNetwork(ram_param['userhier'],
-                                  ram_param['userbom'])
+        electrical_network = None
+        moorings_network = None
+        user_network = None
+        
+        if not (ram_param['elechier'] is None or
+                ram_param['elecbom'] is None):
+            electrical_network = SubNetwork(ram_param['elechier'],
+                                            ram_param['elecbom'])
+        
+        if not (ram_param['moorhier'] is None or
+                ram_param['moorbom'] is None):
+            moorings_network = SubNetwork(ram_param['moorhier'],
+                                          ram_param['moorbom'])
+        
+        if not (ram_param['userhier'] is None or
+                ram_param['userbom'] is None):
+            user_network = SubNetwork(ram_param['userhier'],
+                                      ram_param['userbom'])
         
         network = Network(ram_param['db'],
                           electrical_network,
@@ -1042,12 +1054,24 @@ class LCOE_Calculator(object):
         
         if ram_network is None:
             
-            electrical_network = SubNetwork(self.__RAM_Param['elechier'],
-                                            self.__RAM_Param['elecbom'])
-            moorings_network = SubNetwork(self.__RAM_Param['moorhier'],
-                                          self.__RAM_Param['moorbom'])
-            user_network = SubNetwork(self.__RAM_Param['userhier'],
-                                      self.__RAM_Param['userbom'])
+            electrical_network = None
+            moorings_network = None
+            user_network = None
+            
+            if not (self.__RAM_Param['elechier'] is None or
+                    self.__RAM_Param['elecbom'] is None):
+                electrical_network = SubNetwork(self.__RAM_Param['elechier'],
+                                                self.__RAM_Param['elecbom'])
+            
+            if not (self.__RAM_Param['moorhier'] is None or
+                    self.__RAM_Param['moorbom'] is None):
+                moorings_network = SubNetwork(self.__RAM_Param['moorhier'],
+                                              self.__RAM_Param['moorbom'])
+            
+            if not (self.__RAM_Param['userhier'] is None or
+                    self.__RAM_Param['userbom'] is None):
+                user_network = SubNetwork(self.__RAM_Param['userhier'],
+                                          self.__RAM_Param['userbom'])
             
             network = Network(self.__RAM_Param['db'],
                               electrical_network,
