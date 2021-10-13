@@ -3,7 +3,6 @@ pinned_packages:
   - conda=4.6.14
   - decorator<5
   - pyqt=4.11.4=py27_5
-  - xlrd<2
 
 disallow:
   - matplotlib-base
